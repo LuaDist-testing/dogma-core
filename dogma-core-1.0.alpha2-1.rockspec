@@ -1,8 +1,16 @@
+-- This file was automatically generated for the LuaDist project.
+
 package = "dogma-core"
-version = "1.0.alpha1-1"
+version = "1.0.alpha2-1"
+-- LuaDist source
 source = {
-   url = "git+https://bitbucket.org/dogmalang/dogma-core.git"
+  tag = "1.0.alpha2-1",
+  url = "git://github.com/LuaDist-testing/dogma-core.git"
 }
+-- Original source
+-- source = {
+--    url = "git+https://bitbucket.org/dogmalang/dogma-core.git"
+-- }
 description = {
    summary = "Dogma kernel.",
    detailed = [[

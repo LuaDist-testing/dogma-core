@@ -69,6 +69,7 @@ function Keyword.isKeyword(id)
     ["use"] = true,
     ["var"] = true,
     ["while"] = true,
+    ["with"] = true,
     ["yield"] = true
   }
 

@@ -1,4 +1,4 @@
-std = "lua52"
+std = "lua53"
 
 ignore = {
   "212",

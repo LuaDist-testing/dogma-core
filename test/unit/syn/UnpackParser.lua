@@ -80,8 +80,8 @@ return suite("dogma.syn.UnpackParser", function()
       assert(sent.exp:__tostring()):eq("(call func)")
     end)
 
-    test("var [$Name, :Name, Name] = Exp", function()
-      parser:parse("var [$a, :b, c] = func()")
+    test("var [$Name, .Name, :Name, Name] = Exp", function()
+      parser:parse("var [$a, .b, :c, d] = func()")
 
       sent = parser:next()
       assert(sent):isTable():has({
@@ -93,8 +93,9 @@ return suite("dogma.syn.UnpackParser", function()
         subtype = "[]",
         vars = {
           {rest = false, name = "$a", value = nil},
-          {rest = false, name = ":b", value = nil},
-          {rest = false, name = "c", value = nil}
+          {rest = false, name = ".b", value = nil},
+          {rest = false, name = ":c", value = nil},
+          {rest = false, name = "d", value = nil}
         }
       })
       assert(sent.exp:__tostring()):eq("(call func)")

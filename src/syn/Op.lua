@@ -31,6 +31,7 @@ end
 function Op:getDesc()
   local OPS = {
     ["u $"] = {assoc = "r", prec = 20},
+    ["u ."] = {assoc = "r", prec = 20},
     ["u :"] = {assoc = "r", prec = 20},
 
     ["b ."] = {assoc = "l", prec = 19},

@@ -26,10 +26,10 @@ end
 --@override
 function UnaryOp:insert(node)
   --(1) pre
-  if tablex.find({"$", ":"}, self.op) then
+  if tablex.find({"$", ".", ":"}, self.op) then
     if not (node.type == NodeType.TERMINAL and node:isId()) then
       error(string.format(
-        "on (%s, %s), '$' or ':' must be followed by identifier.",
+        "on (%s, %s), '$', '.' and ':' must be followed by identifier.",
         node.token.line,
         node.token.col
       ))

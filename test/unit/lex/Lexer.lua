@@ -291,6 +291,46 @@ return suite("dogma.lex.Lexer", function()
       assert(lexer:next()):isTable():has({type = TokenType.EOL, line = 1, col = 12})
       assert(lexer:next()):isNil()
     end)
+
+    test("_scanId() - being keyword preceded by $", function()
+      lexer:scan("$then")
+
+      assert(lexer:next()):isTable():has({type = TokenType.SYMBOL, line = 1, col = 1, value = "$"})
+      assert(lexer:next()):isTable():has({type = TokenType.NAME, line = 1, col = 2, value = "then"})
+      assert(lexer:next()):isTable():has({type = TokenType.EOL, line = 1, col = 6})
+      assert(lexer:next()):isNil()
+    end):tags("1x2")
+
+    test("_scanId() - being keyword preceded by .", function()
+      lexer:scan(".then")
+
+      assert(lexer:next()):isTable():has({type = TokenType.SYMBOL, line = 1, col = 1, value = "."})
+      assert(lexer:next()):isTable():has({type = TokenType.NAME, line = 1, col = 2, value = "then"})
+      assert(lexer:next()):isTable():has({type = TokenType.EOL, line = 1, col = 6})
+      assert(lexer:next()):isNil()
+    end):tags("1x2")
+
+    test("_scanId() - being keyword preceded by :", function()
+      lexer:scan(":then")
+
+      assert(lexer:next()):isTable():has({type = TokenType.SYMBOL, line = 1, col = 1, value = ":"})
+      assert(lexer:next()):isTable():has({type = TokenType.NAME, line = 1, col = 2, value = "then"})
+      assert(lexer:next()):isTable():has({type = TokenType.EOL, line = 1, col = 6})
+      assert(lexer:next()):isNil()
+    end):tags("1x2")
+
+    test("_scanId() - being keyword preceded by : using advanced token", function()
+      lexer:scan(":then")
+
+      assert(lexer:next()):isTable():has({type = TokenType.SYMBOL, line = 1, col = 1, value = ":"})
+      lexer:unshift()
+      assert(lexer:advance(1)):isTable():has({type = TokenType.SYMBOL, line = 1, col = 1, value = ":"})
+      assert(lexer:advance(2)):isTable():has({type = TokenType.NAME, line = 1, col = 2, value = "then"})
+      assert(lexer:next()):isTable():has({type = TokenType.SYMBOL, line = 1, col = 1, value = ":"})
+      assert(lexer:next()):isTable():has({type = TokenType.NAME, line = 1, col = 2, value = "then"})
+      assert(lexer:next()):isTable():has({type = TokenType.EOL, line = 1, col = 6})
+      assert(lexer:next()):isNil()
+    end):tags("1x2")
   end)
 
   -----------------

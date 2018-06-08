@@ -627,6 +627,11 @@ const Coord2D = new Proxy($Coord2D, { apply(receiver, self, args) { return new $
         assert(trans:next()):eq('MyType.prototype.myfn = function(x) { dogma.paramExpected("x", x, null);Object.defineProperty(this, "x", {value: x, enum: true, writable: true});{} };\n')
       end)
 
+      test("fn Name . Name (. Name)", function()
+        parser:parse("fn MyType.myfn(.x)")
+        assert(trans:next()):eq('MyType.prototype.myfn = function(x) { dogma.paramExpected("x", x, null);Object.defineProperty(this, "x", {value: x, enum: true, writable: true});{} };\n')
+      end):tags("1x2")
+
       test("fn Name . Name ($ Name , $ Name)", function()
         parser:parse("fn MyType.myfn($x, $y)")
         assert(trans:next()):eq('MyType.prototype.myfn = function(x, y) { dogma.paramExpected("x", x, null);dogma.paramExpected("y", y, null);Object.defineProperty(this, "x", {value: x, enum: true, writable: true});Object.defineProperty(this, "y", {value: y, enum: true, writable: true});{} };\n')
@@ -634,6 +639,11 @@ const Coord2D = new Proxy($Coord2D, { apply(receiver, self, args) { return new $
 
       test("fn Name . Name (const $ Name)", function()
         parser:parse("fn MyType.myfn(const $x)")
+        assert(trans:next()):eq('MyType.prototype.myfn = function(x) { dogma.paramExpected("x", x, null);Object.defineProperty(this, "x", {value: x, enum: true, writable: false});{} };\n')
+      end)
+
+      test("fn Name . Name (const . Name)", function()
+        parser:parse("fn MyType.myfn(const .x)")
         assert(trans:next()):eq('MyType.prototype.myfn = function(x) { dogma.paramExpected("x", x, null);Object.defineProperty(this, "x", {value: x, enum: true, writable: false});{} };\n')
       end)
 

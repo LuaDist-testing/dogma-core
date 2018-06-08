@@ -26,15 +26,21 @@ end
 --@param mod:string   Module to use.
 --@param name?:string Variable module name.
 function UseStmt:insert(type, mod, name)
-  local NAME_PATTERN = "^[%a_][%w_]*$"
-  local Q_PATTERN = "^.*/([%a_][%w_]*)$"
+  local NAME_PATTERN1 = "^[%a_][%w_]*$"
+  local NAME_PATTERN2 = "^[%a_][%w_%-]*-([%a_][%w_]*)$"
+  local Q_PATTERN1 = "^.*/([%a_][%w_]*)$"
+  local Q_PATTERN2 = "^.*%.([%a_][%w_]*)$"
 
   --(1) set name if needed
   if not name then
-    if mod:find(NAME_PATTERN) then
+    if mod:find(NAME_PATTERN1) then
       name = mod
-    elseif mod:find(Q_PATTERN) then
-      name = mod:match(Q_PATTERN)
+    elseif mod:find(NAME_PATTERN2) then
+      name = mod:match(NAME_PATTERN2)
+    elseif mod:find(Q_PATTERN1) then
+      name = mod:match(Q_PATTERN1)
+    elseif mod:find(Q_PATTERN2) then
+      name = mod:match(Q_PATTERN2)
     else
       error(string.format("invalid module path format: '%s'.", mod))
     end

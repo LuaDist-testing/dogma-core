@@ -65,7 +65,7 @@ function UnpackTrans:_transList(sent)
     local name = var.name
     local prefix
 
-    if name:find("^%$") then
+    if name:find("^[$.]") then
       prefix = "this."
       name = name:sub(2)
     elseif name:find("^:") then
@@ -109,7 +109,7 @@ function UnpackTrans:_transReadOnlyFieldsList(sent)
   for ix, fld in ipairs(sent.vars) do
     local name = fld.name
 
-    if fld.name:find("^%$") then
+    if fld.name:find("^[$.]") then
       name = fld.name:sub(2)
 
       code = code .. string.format(
@@ -178,7 +178,7 @@ function UnpackTrans:_transMap(sent)
       local name = var.name
       local prefix
 
-      if name:find("^%$") then
+      if name:find("^[$.]") then
         prefix = "this."
         name = name:sub(2)
       elseif name:find("^:") then
@@ -229,7 +229,7 @@ function UnpackTrans:_transReadOnlyFieldsMap(sent)
   for _, fld in ipairs(sent.vars) do
     local name = fld.name
 
-    if fld.name:find("^%$") then
+    if fld.name:find("^[$.]") then
       name = fld.name:sub(2)
 
       code = code .. string.format(

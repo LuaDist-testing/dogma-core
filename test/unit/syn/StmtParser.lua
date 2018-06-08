@@ -188,6 +188,24 @@ return suite("dogma.syn.StmtParser", function()
       assert(stmt.modules):eq({})
     end)
 
+    test('use "justo.assert"', function()
+      parser:parse('use "justo.assert"')
+      stmt = parser:next()
+      assert(stmt):isTable():has({type = SentType.STMT, subtype = StmtType.USE})
+      assert(stmt.modules):eq({
+        {type = false, name = "assert", path = "justo.assert"}
+      })
+    end):tags("1x2")
+
+    test('use "redispark-connector-redis"', function()
+      parser:parse('use "redispark-connector-redis"')
+      stmt = parser:next()
+      assert(stmt):isTable():has({type = SentType.STMT, subtype = StmtType.USE})
+      assert(stmt.modules):eq({
+        {type = false, name = "redis", path = "redispark-connector-redis"}
+      })
+    end):tags("1x2")
+
     test("use LitealStr, LiteralStr", function()
       parser:parse('use "module1", "module2"')
       stmt = parser:next()
@@ -1561,6 +1579,34 @@ return suite("dogma.syn.StmtParser", function()
 
       test("fn Name ( $ Name )", function()
         parser:parse("fn inc($x)")
+
+        stmt = parser:next()
+        assert(stmt):isTable():has({
+          line = 1,
+          col = 1,
+          annots = {},
+          visib = nil,
+          itype = nil,
+          name = "inc",
+          accessor = nil,
+          rtype = nil,
+          rvar = nil,
+          params = {
+            {
+              const = false,
+              modifier = "$",
+              name = "x",
+              optional = false,
+              type = nil,
+              value = nil
+            }
+          }
+        })
+        assert(stmt.body):isEmpty()
+      end)
+
+      test("fn Name ( . Name )", function()
+        parser:parse("fn inc(.x)")
 
         stmt = parser:next()
         assert(stmt):isTable():has({

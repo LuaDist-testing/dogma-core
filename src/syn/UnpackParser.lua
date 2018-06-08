@@ -66,7 +66,7 @@ function UnpackParser:next()
 
     --name
     tok = lex:advance()
-    if tok.type == TokenType.SYMBOL and (tok.value == "$" or tok.value == ":") then
+    if tok.type == TokenType.SYMBOL and (tok.value == "$" or tok.value == "." or tok.value == ":") then
       name = tok.value
       lex:next()
     else

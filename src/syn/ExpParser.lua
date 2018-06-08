@@ -144,6 +144,12 @@ function ExpParser:_readExp()
         else
           node = UnaryOp.new(tok)
         end
+      elseif tok.type == TokenType.SYMBOL and tok.value == "." then
+        if exp.tree:isWellFormed() then
+          node = BinOp.new(tok)
+        else
+          node = UnaryOp.new(tok)
+        end
       else
         node = self:_getNodeOf(tok)
       end

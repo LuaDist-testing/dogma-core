@@ -60,6 +60,13 @@ function Lexer:scan(text, file)
   return self
 end
 
+--Return the last token that has been read.
+--
+--@return Token
+function Lexer:_getLastReadToken()
+  return self._.token
+end
+
 --Scan the next token.
 --
 --@overload
@@ -438,10 +445,13 @@ function Lexer:_scanId()
   end
 
   --(2) return
-  if Keyword.isKeyword(id) then
-    return Keyword.new(ln, col, id)
-  else
+  local last = self:_getLastReadToken()
+
+  if (last and last.type == TokenType.SYMBOL and (last.value == "." or last.value == ":" or last.value == "$")) or
+     not Keyword.isKeyword(id) then
     return Name.new(ln, col, id)
+  else
+    return Keyword.new(ln, col, id)
   end
 end
 

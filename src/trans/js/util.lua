@@ -6,7 +6,7 @@ package.loaded[...] = {
     local KEYWORDS = {
       "abstract", "await",
       "break",
-      "case", "catch", "char", "class", "const", "continue",
+      "case", "char", "class", "const", "continue",
       "debugger", "default", "do",
       "else", "enum", "export", "extends",
       "final", "finally", "for", "function",

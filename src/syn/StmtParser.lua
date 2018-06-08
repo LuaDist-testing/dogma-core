@@ -844,7 +844,7 @@ function StmtParser:_readFnParams()
       tok = lex:advance()
 
       if tok.type == TokenType.SYMBOL and
-         (tok.value == "$" or tok.value == ":" or tok.value == "...") then
+         (tok.value == "$" or tok.value == "." or tok.value == ":" or tok.value == "...") then
         lex:next()
         mod = tok.value
       end

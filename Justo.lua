@@ -33,10 +33,6 @@ catalog:macro("test", {
   {title = "js.UnpackTrans", task = "./test/unit/trans/js/UnpackTrans"}
 }):desc("Unit testing.")
 
-catalog:macro("prepub", {
-  {title = "Prepare for packing", task = cli, params = {cmd = "git congif --local credential.helper 'cache --timeout 3600'"}}
-}):desc("Prepare for packing rock.")
-
 catalog:macro("default", {
   {title = "Lint code", task = "lint"},
   {title = "Make and install", task = "make"},

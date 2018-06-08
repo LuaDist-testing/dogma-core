@@ -201,7 +201,7 @@ function ExpTrans:_transOp(node)
 end
 
 function ExpTrans:_transUnaryOp(node)
-  if node.op == "$" then
+  if node.op == "$" or node.op == "." then
     return "this." .. node.child.data
   elseif node.op == ":" then
     return "this._" .. node.child.data
@@ -280,13 +280,13 @@ function ExpTrans:_transConstAssign(op)
   local code
 
   --(1) transform
-  if left.op == "$" then
+  if left.arity == "u" and (left.op == "$" or left.op == ".") then
     code = string.format(
       [[Object.defineProperty(this, "%s", {value: %s, enum: true})]],
       self:_transNode(left.child),
       self:_transNode(right)
     )
-  elseif left.op == "." then
+  elseif left.arity == "b" and left.op == "." then
     code = string.format(
       [[Object.defineProperty(%s, "%s", {value: %s, enum: true})]],
       self:_transNode(left.children[1]),
@@ -328,7 +328,7 @@ function ExpTrans:_transAssignWithPubProp(op)
   --(1) transform
   if left.arity == "u" then
     code = string.format(
-      'Object.defineProperty(this, "_%s", {value: %s});',
+      'Object.defineProperty(this, "_%s", {value: %s, writable: true});',
       left.child.data,
       self:_transNode(right)
     )

@@ -62,10 +62,10 @@ return suite("dogma.trans.js._.StmtTrans", function()
       assert(trans:next()):eq("[x, y] = (1+2);\n")
     end)
 
-    test("[$Name, :Name] = Exp", function()
-      parser:parse("[$x, :y] = 1+2")
-      assert(trans:next()):eq("[this.x, this._y] = (1+2);\n")
-    end)
+    test("[$Name, .Name, :Name] = Exp", function()
+      parser:parse("[$x, .y, :z] = 1+2")
+      assert(trans:next()):eq("[this.x, this.y, this._z] = (1+2);\n")
+    end):tags("1x2")
 
     test("[Name = Exp, Name, Name = Exp] = Exp", function()
       parser:parse("[x = 1, y, z = 3] = 1+2")
@@ -81,12 +81,13 @@ return suite("dogma.trans.js._.StmtTrans", function()
       parser:parse("[x, ...y] ; 1+2")
       assert(function() trans:next() end):raises("on (1,11), = or := expected.")
     end)
-    test("[$Name, :Name, Name] := Exp", function()
-      parser:parse("[$x, :y, z] := 1+2")
+
+    test("[$Name, .Name, :Name, Name] := Exp", function()
+      parser:parse("[$x, .y, :z, a] := 1+2")
       assert(trans:next()):like(
-        'const %$aux[0-9a-zA-Z]+ = %(1%+2%);Object.defineProperty%(this, "x", {value: $aux[0-9a-zA-Z]+%[0%], enum: true}%);Object.defineProperty%(this, "_y", {value: $aux[0-9a-zA-Z]+%[1%]}%);z = %$aux[0-9a-zA-Z]+%[2%];\n'
+        'const %$aux[0-9a-zA-Z]+ = %(1%+2%);Object.defineProperty%(this, "x", {value: $aux[0-9a-zA-Z]+%[0%], enum: true}%);Object.defineProperty%(this, "y", {value: $aux[0-9a-zA-Z]+%[1%], enum: true}%);Object.defineProperty%(this, "_z", {value: $aux[0-9a-zA-Z]+%[2%]}%);a = %$aux[0-9a-zA-Z]+%[3%];\n'
       )
-    end)
+    end):tags("1x2")
   end)
 
   ---------
@@ -133,21 +134,21 @@ return suite("dogma.trans.js._.StmtTrans", function()
       assert(trans:next()):eq("({x: x, y: y} = (1+2));\n")
     end)
 
-    test("{$Name, :Name} = Exp", function()
-      parser:parse("{$x, :y} = 1+2")
-      assert(trans:next()):eq("({x: this.x, y: this._y} = (1+2));\n")
-    end)
+    test("{$Name, .Name, :Name} = Exp", function()
+      parser:parse("{$x, .y, :z} = 1+2")
+      assert(trans:next()):eq("({x: this.x, y: this.y, z: this._z} = (1+2));\n")
+    end):tags("1x2")
 
     test("{Name = Exp, Name, Name = Exp} = Exp", function()
       parser:parse("{x = 1, y, z = 3} = 1+2")
       assert(trans:next()):eq("({x: x = 1, y: y, z: z = 3} = (1+2));\n")
     end)
 
-    test("{$Name, :Name, Name} := Exp", function()
-      parser:parse("{$x, :y, z} := 1+2")
+    test("{$Name, .Name, :Name, Name} := Exp", function()
+      parser:parse("{$x, .y, :z, a} := 1+2")
       assert(trans:next()):like(
-        'const %$aux[0-9a-zA-Z]+ = %(1%+2%);Object.defineProperty%(this, "x", {value: $aux[0-9a-zA-Z]+%["x"%], enum: true}%);Object.defineProperty%(this, "_y", {value: $aux[0-9a-zA-Z]+%["y"%]}%);z = %$aux[0-9a-zA-Z]+%["z"%];\n'
+        'const %$aux[0-9a-zA-Z]+ = %(1%+2%);Object.defineProperty%(this, "x", {value: $aux[0-9a-zA-Z]+%["x"%], enum: true}%);Object.defineProperty%(this, "y", {value: $aux[0-9a-zA-Z]+%["y"%], enum: true}%);Object.defineProperty%(this, "_z", {value: $aux[0-9a-zA-Z]+%["z"%]}%);a = %$aux[0-9a-zA-Z]+%["a"%];\n'
       )
-    end)
+    end):tags("1x2")
   end)
 end):tags("unpack")

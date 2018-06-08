@@ -12,7 +12,10 @@ package.loaded[...] = Param
 --@param dtype?:Exp
 --@param val?:Exp
 function Param.new(const, mod, name, opt, dtype, val)
-  return setmetatable({
+  local self
+
+  --(1) create
+  self = setmetatable({
     const = const,
     modifier = mod,  --$ or : or ...
     name = name,
@@ -20,4 +23,11 @@ function Param.new(const, mod, name, opt, dtype, val)
     type = dtype,
     value = val
   }, Param)
+
+  if self.modifier == "." then
+    self.modifier = "$"
+  end
+
+  --(2) return
+  return self
 end
