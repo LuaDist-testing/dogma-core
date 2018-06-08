@@ -576,6 +576,21 @@ const Coord2D = new Proxy($Coord2D, { apply(receiver, self, args) { return new $
         assert(trans:next()):eq('function myfn(x) { dogma.paramExpected("x", x, null);{} }\n')
       end)
 
+      test("fn Name(Name:Name)", function()
+        parser:parse("fn myfn(x:num)")
+        assert(trans:next()):eq('function myfn(x) { dogma.paramExpected("x", x, num);{} }\n')
+      end)
+
+      test("fn Name(Name:(Name))", function()
+        parser:parse("fn myfn(x:(num))")
+        assert(trans:next()):eq('function myfn(x) { dogma.paramExpected("x", x, [num]);{} }\n')
+      end):tags("1x2")
+
+      test("fn Name(Name:(Name, Name))", function()
+        parser:parse("fn myfn(x:(text,list))")
+        assert(trans:next()):eq('function myfn(x) { dogma.paramExpected("x", x, [text, list]);{} }\n')
+      end):tags("1x2")
+
       test("fn Name(const Name)", function()
         parser:parse("fn myfn(x)")
         assert(trans:next()):eq('function myfn(x) { dogma.paramExpected("x", x, null);{} }\n')
@@ -586,19 +601,24 @@ const Coord2D = new Proxy($Coord2D, { apply(receiver, self, args) { return new $
         assert(trans:next()):eq('function myfn(x) { {} }\n')
       end)
 
-      test("fn Name(...Name)", function()
-        parser:parse("fn myfn(...x)")
-        assert(trans:next()):eq('function myfn(...x) { {} }\n')
-      end)
-
-      test("fn Name(Name:Name)", function()
-        parser:parse("fn myfn(x:num)")
-        assert(trans:next()):eq('function myfn(x) { dogma.paramExpected("x", x, num);{} }\n')
-      end)
-
       test("fn Name(Name?:Name)", function()
         parser:parse("fn myfn(x?:num)")
         assert(trans:next()):eq('function myfn(x) { dogma.paramExpectedToBe("x", x, num);{} }\n')
+      end)
+
+      test("fn Name(Name?:(Name))", function()
+        parser:parse("fn myfn(x?:(num))")
+        assert(trans:next()):eq('function myfn(x) { dogma.paramExpectedToBe("x", x, [num]);{} }\n')
+      end):tags("1x2")
+
+      test("fn Name(Name?:(Name, Name))", function()
+        parser:parse("fn myfn(x?:(text,list))")
+        assert(trans:next()):eq('function myfn(x) { dogma.paramExpectedToBe("x", x, [text, list]);{} }\n')
+      end):tags("1x2")
+
+      test("fn Name(...Name)", function()
+        parser:parse("fn myfn(...x)")
+        assert(trans:next()):eq('function myfn(...x) { {} }\n')
       end)
 
       test("fn Name(Name=Name)", function()
@@ -611,10 +631,10 @@ const Coord2D = new Proxy($Coord2D, { apply(receiver, self, args) { return new $
         assert(trans:next()):eq('function sum(vals) { dogma.paramExpectedToHave("vals", vals, {});{return (vals.x+vals.y);} }\n')
       end)
 
-      test("fn Name(Name:{p,q:type,r?:type})", function()
-        parser:parse("fn sum(vals:{x, y:num, z?:num}) = vals.x + vals.y")
-        assert(trans:next()):eq('function sum(vals) { dogma.paramExpectedToHave("vals", vals, {x: {type: any, mandatory: true}, y: {type: num, mandatory: true}, z: {type: num, mandatory: false}});{return (vals.x+vals.y);} }\n')
-      end)
+      test("fn Name(Name:{p,q:type,r?:type,s:(type1,type2)})", function()
+        parser:parse("fn sum(vals:{x, y:num, z?:num, a:(text,list)}) = vals.x + vals.y")
+        assert(trans:next()):eq('function sum(vals) { dogma.paramExpectedToHave("vals", vals, {x: {type: any, mandatory: true}, y: {type: num, mandatory: true}, z: {type: num, mandatory: false}, a: {type: [text, list], mandatory: true}});{return (vals.x+vals.y);} }\n')
+      end):tags("1x2")
 
       test("fn Name(Name?:{p, q:type, r?:type})", function()
         parser:parse("fn sum(vals?:{x, y:num, z?:num}) = vals.x + vals.y")

@@ -29,17 +29,17 @@
          local self
 
          --(1) arguments
-   771   if not props then props = {} end
+   780   if not props then props = {} end
 
          --(2) create
-  1542   self = setmetatable({
-   771     _ = {
-   771       comments = not not props.comments
-   771     }
-  1542   }, Lexer)
+  1560   self = setmetatable({
+   780     _ = {
+   780       comments = not not props.comments
+   780     }
+  1560   }, Lexer)
 
          --(3) return
-   771   return self
+   780   return self
        end
 
        --Raises an error.
@@ -57,24 +57,24 @@
        --@return self
      1 function Lexer:scan(text, file)
          --(1) arguments
-   773   if not text then self:throw("text expected.") end
+   782   if not text then self:throw("text expected.") end
 
          --(2) init
-   772   self._.reader = Reader.new(text)
-   772   self._.file = file or "anonymous code"
-   772   self._.processed = ProcessedList.new(3)
-   772   self._.token = nil
-   772   self._.advanced = AdvancedList.new(3)
+   781   self._.reader = Reader.new(text)
+   781   self._.file = file or "anonymous code"
+   781   self._.processed = ProcessedList.new(3)
+   781   self._.token = nil
+   781   self._.advanced = AdvancedList.new(3)
 
          --(3) return
-   772   return self
+   781   return self
        end
 
        --Return the last token that has been read.
        --
        --@return Token
      1 function Lexer:_getLastReadToken()
-  2149   return self._.token
+  2195   return self._.token
        end
 
        --Scan the next token.
@@ -87,41 +87,41 @@
        --@param val:string     Token value to read.
        --@return Token
      1 function Lexer:next(typ, val)
- 11094   local reader = self._.reader
+ 11348   local reader = self._.reader
          local tok
 
          --(1) get token to return
- 11094   if self:_hasTokenToShift() then
-  4163     self:_shift()
+ 11348   if self:_hasTokenToShift() then
+  4263     self:_shift()
          else
            local ch
 
            --get next char
-  6931     ch = reader:next()
+  7085     ch = reader:next()
 
-  8851     while ch ~= nil and (ch.char == " " or ch.char == "\t") do
-  1920       ch = reader:next()
+  9015     while ch ~= nil and (ch.char == " " or ch.char == "\t") do
+  1930       ch = reader:next()
            end
 
-  6931     if ch ~= nil then
-  5886       ch = ch.char
+  7085     if ch ~= nil then
+  6005       ch = ch.char
 
              --analyze token
-  5886       reader:unshift()
+  6005       reader:unshift()
 
-  5886       if ch == "\n" then
-   947         tok = self:_scanEol()
-  4939       elseif ch == "@" then
+  6005       if ch == "\n" then
+   956         tok = self:_scanEol()
+  5049       elseif ch == "@" then
     29         tok = self:_scanAnnotation()
-  4910       elseif ch == "_" or stringx.isalpha(ch) then
-  2149         tok = self:_scanId()
-  2761       elseif ch == "'" then
+  5020       elseif ch == "_" or stringx.isalpha(ch) then
+  2195         tok = self:_scanId()
+  2825       elseif ch == "'" then
      1         tok = self:_scanName()
-  2760       elseif stringx.isdigit(ch) then
+  2824       elseif stringx.isdigit(ch) then
    582         tok = self:_scanLiteralNumber()
-  2178       elseif ch == '"' then
+  2242       elseif ch == '"' then
     93         tok = self:_scanLiteralString()
-  2085       elseif ch == "#" then
+  2149       elseif ch == "#" then
     48         reader:next()
     48         ch = reader:next().char
 
@@ -138,26 +138,26 @@
                  end
                end
              else
-  2037         tok = self:_scanSymbol()
+  2101         tok = self:_scanSymbol()
              end
 
-  5876       self:_backUpToken()
-  5876       self._.token = tok
+  5995       self:_backUpToken()
+  5995       self._.token = tok
            else
-  1045       self:_backUpToken()
-  1045       self._.token = nil
+  1080       self:_backUpToken()
+  1080       self._.token = nil
            end
          end
 
          --(2) check
- 11084   if typ then
-  2148     tok = self._.token
+ 11338   if typ then
+  2263     tok = self._.token
 
-  2148     if tok == nil then
+  2263     if tok == nil then
      2       self:throw(string.format("'%s' expected at the end of code.", val))
            end
 
-  2146     if tok.type ~= typ or (val ~= nil and tok.value ~= val) then
+  2261     if tok.type ~= typ or (val ~= nil and tok.value ~= val) then
     19       if typ == TokenType.EOL then
      4         self:throw(string.format(
      2           "end of line expected on (%s, %s).",
@@ -188,7 +188,7 @@
          end
 
          --(3) return
- 11063   return self._.token
+ 11317   return self._.token
        end
 
        --Return the next token that must be an end of line.
@@ -215,14 +215,14 @@
        --
        --@return Name
      1 function Lexer:nextName()
-    68   return self:next(TokenType.NAME)
+    91   return self:next(TokenType.NAME)
        end
 
        --Return the next token that must be a symbol.
        --
        --@return Symbol
      1 function Lexer:nextSymbol(val)
-   164   return self:next(TokenType.SYMBOL, val)
+   204   return self:next(TokenType.SYMBOL, val)
        end
 
        --Return the next token that must be a keyword.
@@ -239,17 +239,17 @@
          local tok
 
          --(1) arguments
-  7833   if i == nil then
-  7723     i = 1
+  8046   if i == nil then
+  7936     i = 1
          end
 
          --(2) get token
-  7833   if #self._.advanced >= i then
-  3733     tok = self._.advanced._.items[i]
+  8046   if #self._.advanced >= i then
+  3811     tok = self._.advanced._.items[i]
          else
-  4100     if i == 1 then
-  3992       tok = self:next()
-  3992       self:unshift()
+  4235     if i == 1 then
+  4127       tok = self:next()
+  4127       self:unshift()
    108     elseif i == 2 then
    107       self:next()
    107       tok = self:next()
@@ -266,54 +266,54 @@
          end
 
          --(3) return
-  7833   return tok
+  8046   return tok
        end
 
        --Check whether the lexer has some token to shift.
        --
        --@return bool
      1 function Lexer:_hasTokenToShift()
- 11094   return #self._.advanced > 0
+ 11348   return #self._.advanced > 0
        end
 
        --Shift a token: <- processed <- current <- advanced
      1 function Lexer:_shift()
          --(1) pre
-  4164   if #self._.advanced == 0 then
+  4264   if #self._.advanced == 0 then
      1     self:throw("no advanced token to shift.")
          end
 
          --(2) current to processed
-  4163   if self._.token then
-  3379     self._.processed:insert(self._.token)
+  4263   if self._.token then
+  3470     self._.processed:insert(self._.token)
          end
 
          --(3) advanced to current
-  4163   self._.token = self._.advanced:remove()
+  4263   self._.token = self._.advanced:remove()
        end
 
        --Unshift a char: processed -> current -> advanced
      1 function Lexer:unshift()
          --(1) pre
-  5379   if not self._.token and #self._.processed == 0 then
+  5514   if not self._.token and #self._.processed == 0 then
      1     self:throw("no current token to unshift.")
          end
 
          --(2) current to advanced
-  5378   self._.advanced:insert(self._.token)
+  5513   self._.advanced:insert(self._.token)
 
          --(3) last processed to current
-  5378   if #self._.processed == 0 then
-   788     self._.token = nil
+  5513   if #self._.processed == 0 then
+   797     self._.token = nil
          else
-  4590     self._.token = self._.processed:remove()
+  4716     self._.token = self._.processed:remove()
          end
        end
 
        --Shift current token to processed tokens: processed <- token.
      1 function Lexer:_backUpToken()
-  6921   if self._.token then
-  6166     self._.processed:insert(self._.token)
+  7075   if self._.token then
+  6311     self._.processed:insert(self._.token)
          end
        end
 
@@ -321,10 +321,10 @@
        --
        --@return Eol
      1 function Lexer:_scanEol()
-   947   local reader = self._.reader
-   947   local ch = reader:next()
+   956   local reader = self._.reader
+   956   local ch = reader:next()
 
-   947   return Eol.new(ch.line, ch.col)
+   956   return Eol.new(ch.line, ch.col)
        end
 
        --Scan an annotation.
@@ -465,44 +465,44 @@
        --
        --@return Id
      1 function Lexer:_scanId()
-  2149   local reader = self._.reader
+  2195   local reader = self._.reader
          local state, ln, col, id
-  2149   local State = {
-  2149     START = 1,
-  2149     MIDDLE = 2,
-  2149     END = 3
+  2195   local State = {
+  2195     START = 1,
+  2195     MIDDLE = 2,
+  2195     END = 3
          }
 
          --(1) state machine
-  2149   state = State.START
+  2195   state = State.START
 
-  9961   while state ~= State.END do
-  7812     local ch = reader:next()
+ 10181   while state ~= State.END do
+  7986     local ch = reader:next()
 
-  7812     if state == State.START then
-  2149       ln, col = ch.line, ch.col
-  2149       id = ch.char
-  2149       state = State.MIDDLE
+  7986     if state == State.START then
+  2195       ln, col = ch.line, ch.col
+  2195       id = ch.char
+  2195       state = State.MIDDLE
            else
-  5663       ch = ch.char
+  5791       ch = ch.char
 
-  5663       if ch == "_" or stringx.isalnum(ch) then
-  3514         id = id .. ch
+  5791       if ch == "_" or stringx.isalnum(ch) then
+  3596         id = id .. ch
              else
-  2149         state = State.END
-  2149         reader:unshift()
+  2195         state = State.END
+  2195         reader:unshift()
              end
            end
          end
 
          --(2) return
-  2149   local last = self:_getLastReadToken()
+  2195   local last = self:_getLastReadToken()
 
-  2149   if (last and last.type == TokenType.SYMBOL and (last.value == "." or last.value == ":" or last.value == "?")) or
-  1996      not Keyword.isKeyword(id) then
-  1431     return Name.new(ln, col, id)
+  2195   if (last and last.type == TokenType.SYMBOL and (last.value == "." or last.value == ":" or last.value == "?")) or
+  2042      not Keyword.isKeyword(id) then
+  1468     return Name.new(ln, col, id)
          else
-   718     return Keyword.new(ln, col, id)
+   727     return Keyword.new(ln, col, id)
          end
        end
 
@@ -548,104 +548,104 @@
        --
        --@return Symbol
      1 function Lexer:_scanSymbol()
-  2037   local reader = self._.reader
+  2101   local reader = self._.reader
          local state, ln, col, sym
-  2037   local State = {
-  2037     START = 1,
-  2037     MIDDLE = 2,
-  2037     END = 3
+  2101   local State = {
+  2101     START = 1,
+  2101     MIDDLE = 2,
+  2101     END = 3
          }
-  2037   local SYMBOLS = {
-  2037     ["+"] = true,
-  2037     ["+="] = true,
-  2037     ["-"] = true,
-  2037     ["-="] = true,
-  2037     ["->"] = true,
-  2037     ["*"] = true,
-  2037     ["*="] = true,
-  2037     ["**"] = true,
-  2037     ["**="] = true,
-  2037     ["/"] = true,
-  2037     ["/="] = true,
-  2037     ["%"] = true,
-  2037     ["%="] = true,
-  2037     ["="] = true,
-  2037     ["=="] = true,
-  2037     ["==="] = true,
-  2037     ["=~"] = true,
-  2037     ["!"] = true,
-  2037     ["!="] = true,
-  2037     ["!=="] = true,
-  2037     ["!~"] = true,
-  2037     ["<"] = true,
-  2037     ["<<"] = true,
-  2037     ["<<<"] = true,
-  2037     ["<<="] = true,
-  2037     ["<="] = true,
-  2037     [">"] = true,
-  2037     [">>"] = true,
-  2037     [">>>"] = true,
-  2037     [">>="] = true,
-  2037     [">="] = true,
-  2037     ["^"] = true,
-  2037     ["^="] = true,
-  2037     ["~"] = true,
-  2037     ["~="] = true,
-  2037     ["("] = true,
-  2037     [")"] = true,
-  2037     ["["] = true,
-  2037     ["]"] = true,
-  2037     ["{"] = true,
-  2037     ["}"] = true,
-  2037     [";"] = true,
-  2037     [":"] = true,
-  2037     [":="] = true,
-  2037     [":=|"] = true,
-  2037     ["."] = true,
-  2037     [".."] = true,
-  2037     ["..."] = true,
-  2037     [".="] = true,
-  2037     ["?"] = true,
-  2037     ["?="] = true,
-  2037     ["&"] = true,
-  2037     ["&="] = true,
-  2037     ["&&"] = true,
-  2037     ["|"] = true,
-  2037     ["|="] = true,
-  2037     ["||"] = true,
-  2037     [","] = true
+  2101   local SYMBOLS = {
+  2101     ["+"] = true,
+  2101     ["+="] = true,
+  2101     ["-"] = true,
+  2101     ["-="] = true,
+  2101     ["->"] = true,
+  2101     ["*"] = true,
+  2101     ["*="] = true,
+  2101     ["**"] = true,
+  2101     ["**="] = true,
+  2101     ["/"] = true,
+  2101     ["/="] = true,
+  2101     ["%"] = true,
+  2101     ["%="] = true,
+  2101     ["="] = true,
+  2101     ["=="] = true,
+  2101     ["==="] = true,
+  2101     ["=~"] = true,
+  2101     ["!"] = true,
+  2101     ["!="] = true,
+  2101     ["!=="] = true,
+  2101     ["!~"] = true,
+  2101     ["<"] = true,
+  2101     ["<<"] = true,
+  2101     ["<<<"] = true,
+  2101     ["<<="] = true,
+  2101     ["<="] = true,
+  2101     [">"] = true,
+  2101     [">>"] = true,
+  2101     [">>>"] = true,
+  2101     [">>="] = true,
+  2101     [">="] = true,
+  2101     ["^"] = true,
+  2101     ["^="] = true,
+  2101     ["~"] = true,
+  2101     ["~="] = true,
+  2101     ["("] = true,
+  2101     [")"] = true,
+  2101     ["["] = true,
+  2101     ["]"] = true,
+  2101     ["{"] = true,
+  2101     ["}"] = true,
+  2101     [";"] = true,
+  2101     [":"] = true,
+  2101     [":="] = true,
+  2101     [":=|"] = true,
+  2101     ["."] = true,
+  2101     [".."] = true,
+  2101     ["..."] = true,
+  2101     [".="] = true,
+  2101     ["?"] = true,
+  2101     ["?="] = true,
+  2101     ["&"] = true,
+  2101     ["&="] = true,
+  2101     ["&&"] = true,
+  2101     ["|"] = true,
+  2101     ["|="] = true,
+  2101     ["||"] = true,
+  2101     [","] = true
          }
 
          --(1) state machine
-  2037   state = State.START
+  2101   state = State.START
 
-  6311   while state ~= State.END do
-  4274     local ch = reader:next()
+  6503   while state ~= State.END do
+  4402     local ch = reader:next()
 
-  4274     if state == State.START then
-  2037       if SYMBOLS[ch.char] then
-  2035         ln, col, sym = ch.line, ch.col, ch.char
-  2035         state = State.MIDDLE
+  4402     if state == State.START then
+  2101       if SYMBOLS[ch.char] then
+  2099         ln, col, sym = ch.line, ch.col, ch.char
+  2099         state = State.MIDDLE
              else
      2         reader:unshift()
      2         state = State.END
              end
            else
-  2237       if SYMBOLS[sym .. ch.char] then
+  2301       if SYMBOLS[sym .. ch.char] then
    202         sym = sym .. ch.char
              else
-  2035         reader:unshift()
-  2035         state = State.END
+  2099         reader:unshift()
+  2099         state = State.END
              end
            end
          end
 
          --(2) return
-  2037   if sym == nil then
+  2101   if sym == nil then
      2     self:throw(string.format("invalid symbol on (%s, %s).", reader._.line, reader._.col - 1))
          end
 
-  2035   return Symbol.new(ln, col, sym)
+  2099   return Symbol.new(ln, col, sym)
        end
 
        --Scan a literal hnumber.
@@ -848,35 +848,35 @@
 
      1 function AdvancedList.new(max)
          --(1) arguments
-  1569   if max == nil then error("max expected.") end
+  1587   if max == nil then error("max expected.") end
 
          --(2) return
-  3136   return setmetatable({
-  1568     _ = {
-  1568       max = max,
-  1568       items = {}
-  1568     }
-  3136   }, AdvancedList)
+  3172   return setmetatable({
+  1586     _ = {
+  1586       max = max,
+  1586       items = {}
+  1586     }
+  3172   }, AdvancedList)
        end
 
      1 function AdvancedList:__len()
- 90035   return #self._.items
+ 91999   return #self._.items
        end
 
      1 function AdvancedList:insert(item)
- 16189   if #self == self._.max then
+ 16553   if #self == self._.max then
      1     error("list already full.")
          end
 
- 16188   table.insert(self._.items, 1, item)
+ 16552   table.insert(self._.items, 1, item)
        end
 
      1 function AdvancedList:remove()
- 14847   if #self == 0 then
+ 15176   if #self == 0 then
      1     error("empty list, nothing to remove.")
          end
 
- 14846   return table.remove(self._.items, 1)
+ 15175   return table.remove(self._.items, 1)
        end
 
 ==============================================================================
@@ -920,11 +920,11 @@
        --@param col:number Column number.
        --@param ch:char    Character.
      1 function Char.new(ln, col, ch)
- 26948   return setmetatable({
- 13474     line = ln,
- 13474     col = col,
- 13474     char = ch
- 26948   }, Char)
+ 27370   return setmetatable({
+ 13685     line = ln,
+ 13685     col = col,
+ 13685     char = ch
+ 27370   }, Char)
        end
 
 ==============================================================================
@@ -999,7 +999,7 @@
        --@param ln:number  Line number.
        --@param col:number Column number.
      1 function Eol.new(ln, col)
-   947   return setmetatable(Token.new(TokenType.EOL, ln, col, "\n"), Eol)
+   956   return setmetatable(Token.new(TokenType.EOL, ln, col, "\n"), Eol)
        end
 
      1 function Eol:__tostring()
@@ -1025,7 +1025,7 @@
        --@param col:number Column number
        --@param id:string  Identifier.
      1 function Id.new(t, ln, col, id)
-  2156   return setmetatable(Token.new(t, ln, col, id), Id)
+  2202   return setmetatable(Token.new(t, ln, col, id), Id)
        end
 
 ==============================================================================
@@ -1047,7 +1047,7 @@
        --@param col:number Column number.
        --@param id:string  Identifier.
      1 function Keyword.new(ln, col, id)
-   724   return setmetatable(Id.new(TokenType.KEYWORD, ln, col, id), Keyword)
+   733   return setmetatable(Id.new(TokenType.KEYWORD, ln, col, id), Keyword)
        end
 
        --Check whether an identifier is a keyword.
@@ -1055,60 +1055,60 @@
        --@param id:string  Identifier to check.
        --@return bool
      1 function Keyword.isKeyword(id)
-  1996   local KEYWORDS = {
-  1996     ["and"] = true,
-  1996     ["as"] = true,
-  1996     ["async"] = true,
-  1996     ["await"] = true,
-  1996     ["break"] = true,
-  1996     ["catch"] = true,
-  1996     ["const"] = true,
-  1996     ["do"] = true,
-  1996     ["dogma"] = true,
-  1996     ["each"] = true,
-  1996     ["else"] = true,
-  1996     ["end"] = true,
-  1996     ["enum"] = true,
-  1996     ["export"] = true,
-  1996     ["extern"] = true,
-  1996     ["false"] = true,
-  1996     ["finally"] = true,
-  1996     ["fn"] = true,
-  1996     ["for"] = true,
-  1996     ["from"] = true,
-  1996     ["if"] = true,
-  1996     ["iif"] = true,
-  1996     ["impl"] = true,
-  1996     ["in"] = true,
-  1996     ["is"] = true,
-  1996     ["like"] = true,
-  1996     ["native"] = true,
-  1996     ["next"] = true,
-  1996     ["nil"] = true,
-  1996     ["nop"] = true,
-  1996     ["not"] = true,
-  1996     ["op"] = true,
-  1996     ["or"] = true,
-  1996     ["pawait"] = true,
-  1996     ["peval"] = true,
-  1996     ["pub"] = true,
-  1996     ["pvt"] = true, --private
-  1996     ["return"] = true,
-  1996     ["self"] = true,
-  1996     ["Self"] = true,
-  1996     ["super"] = true,
-  1996     ["then"] = true,
-  1996     ["throw"] = true,
-  1996     ["true"] = true,
-  1996     ["type"] = true,
-  1996     ["use"] = true,
-  1996     ["var"] = true,
-  1996     ["while"] = true,
-  1996     ["with"] = true,
-  1996     ["yield"] = true
+  2042   local KEYWORDS = {
+  2042     ["and"] = true,
+  2042     ["as"] = true,
+  2042     ["async"] = true,
+  2042     ["await"] = true,
+  2042     ["break"] = true,
+  2042     ["catch"] = true,
+  2042     ["const"] = true,
+  2042     ["do"] = true,
+  2042     ["dogma"] = true,
+  2042     ["each"] = true,
+  2042     ["else"] = true,
+  2042     ["end"] = true,
+  2042     ["enum"] = true,
+  2042     ["export"] = true,
+  2042     ["extern"] = true,
+  2042     ["false"] = true,
+  2042     ["finally"] = true,
+  2042     ["fn"] = true,
+  2042     ["for"] = true,
+  2042     ["from"] = true,
+  2042     ["if"] = true,
+  2042     ["iif"] = true,
+  2042     ["impl"] = true,
+  2042     ["in"] = true,
+  2042     ["is"] = true,
+  2042     ["like"] = true,
+  2042     ["native"] = true,
+  2042     ["next"] = true,
+  2042     ["nil"] = true,
+  2042     ["nop"] = true,
+  2042     ["not"] = true,
+  2042     ["op"] = true,
+  2042     ["or"] = true,
+  2042     ["pawait"] = true,
+  2042     ["peval"] = true,
+  2042     ["pub"] = true,
+  2042     ["pvt"] = true, --private
+  2042     ["return"] = true,
+  2042     ["self"] = true,
+  2042     ["Self"] = true,
+  2042     ["super"] = true,
+  2042     ["then"] = true,
+  2042     ["throw"] = true,
+  2042     ["true"] = true,
+  2042     ["type"] = true,
+  2042     ["use"] = true,
+  2042     ["var"] = true,
+  2042     ["while"] = true,
+  2042     ["with"] = true,
+  2042     ["yield"] = true
          }
 
-  1996   return KEYWORDS[id] or false
+  2042   return KEYWORDS[id] or false
        end
 
        --@override
@@ -1170,7 +1170,7 @@
        --@param col:number Column number
        --@param id:string  Identifier.
      1 function Name.new(ln, col, id)
-  1432   return setmetatable(Id.new(TokenType.NAME, ln, col, id), Id)
+  1469   return setmetatable(Id.new(TokenType.NAME, ln, col, id), Id)
        end
 
        --@override
@@ -1187,35 +1187,35 @@
 
      1 function List.new(max)
          --(1) arguments
-  1569   if max == nil then error("max expected.") end
+  1587   if max == nil then error("max expected.") end
 
          --(2) return
-  3136   return setmetatable({
-  1568     _ = {
-  1568       max = max,
-  1568       items = {}
-  1568     }
-  3136   }, List)
+  3172   return setmetatable({
+  1586     _ = {
+  1586       max = max,
+  1586       items = {}
+  1586     }
+  3172   }, List)
        end
 
      1 function List:__len()
- 64404   return #self._.items
+ 65816   return #self._.items
        end
 
      1 function List:insert(item)
- 32571   if #self == self._.max then
- 14488     table.remove(self._.items, 1)
+ 33238   if #self == self._.max then
+ 14764     table.remove(self._.items, 1)
          end
 
- 32571   table.insert(self._.items, item)
+ 33238   table.insert(self._.items, item)
        end
 
      1 function List:remove()
- 14605   if #self == 0 then
+ 14951   if #self == 0 then
      1     error("internal error: invalid remove from previous list.")
          end
 
- 14604   return table.remove(self._.items)
+ 14950   return table.remove(self._.items)
        end
 
 ==============================================================================
@@ -1234,23 +1234,23 @@
 
        --Constructor.
      1 function Reader.new(txt)
-  1578   return setmetatable({
-   789     _ = {
-   789       text = stringx.split(txt, "\n"),
-   789       line = 1,
-   789       col = 1,
-   789       processed = ProcessedList.new(3),
-   789       char = nil,
-   789       advanced = AdvancedList.new(3),
-   789     }
-  1578   }, Reader)
+  1596   return setmetatable({
+   798     _ = {
+   798       text = stringx.split(txt, "\n"),
+   798       line = 1,
+   798       col = 1,
+   798       processed = ProcessedList.new(3),
+   798       char = nil,
+   798       advanced = AdvancedList.new(3),
+   798     }
+  1596   }, Reader)
        end
 
        --Check whether the lexer has some char to shift.
        --
        --@return bool
      1 function Reader:_hasCharToShift()
- 25205   return #self._.advanced > 0
+ 25680   return #self._.advanced > 0
        end
 
        --Read the next character.
@@ -1258,67 +1258,67 @@
        --@return Char
      1 function Reader:next()
          --(1) read
- 25205   if self:_hasCharToShift() then
- 10675     self:_shift()
+ 25680   if self:_hasCharToShift() then
+ 10904     self:_shift()
          else
- 14530     local ln = self._.text[self._.line]
+ 14776     local ln = self._.text[self._.line]
 
- 14530     if ln then
- 13474       if self._.col > #ln then
-  1043         self:_backUp()
-  1043         self._.char = Char.new(self._.line, self._.col, "\n")
-  1043         self._.line = self._.line + 1
-  1043         self._.col = 1
+ 14776     if ln then
+ 13685       if self._.col > #ln then
+  1052         self:_backUp()
+  1052         self._.char = Char.new(self._.line, self._.col, "\n")
+  1052         self._.line = self._.line + 1
+  1052         self._.col = 1
              else
- 12431         self:_backUp()
- 12431         self._.char = Char.new(self._.line, self._.col, ln:sub(self._.col, self._.col))
- 12431         self._.col = self._.col + 1
+ 12633         self:_backUp()
+ 12633         self._.char = Char.new(self._.line, self._.col, ln:sub(self._.col, self._.col))
+ 12633         self._.col = self._.col + 1
              end
            else  --end of input
-  1056       self:_backUp()
-  1056       self._.char = nil
+  1091       self:_backUp()
+  1091       self._.char = nil
            end
          end
 
          --(2) return
- 25205   return self._.char
+ 25680   return self._.char
        end
 
        --Shift a char: <- processed <- current <- advanced
      1 function Reader:_shift()
          --(1) pre
- 10679   if #self._.advanced == 0 then
+ 10908   if #self._.advanced == 0 then
      1     error("no advanced char to shift.")
          end
 
          --(2) current to processed
- 10678   if self._.char then
-  9887     self._.processed:insert(self._.char)
+ 10907   if self._.char then
+ 10107     self._.processed:insert(self._.char)
          end
 
          --(3) advanced to current
- 10678   self._.char = self._.advanced:remove()
+ 10907   self._.char = self._.advanced:remove()
        end
 
        --Unshift a char: processed -> current -> advanced
      1 function Reader:unshift()
          --(1) current to advanced
- 10804   if self._.char then
- 10799     self._.advanced:insert(self._.char)
+ 11033   if self._.char then
+ 11028     self._.advanced:insert(self._.char)
          end
 
          --(2) last processed to current
- 10804   if #self._.processed == 0 then
-   795     self._.char = nil
+ 11033   if #self._.processed == 0 then
+   804     self._.char = nil
          else
- 10009     self._.char = self._.processed:remove()
+ 10229     self._.char = self._.processed:remove()
          end
        end
 
        --Shift current char to processed chars: processed <- char.
      1 function Reader:_backUp()
- 14530   if self._.char then
- 13127     self._.processed:insert(self._.char)
+ 14776   if self._.char then
+ 13338     self._.processed:insert(self._.char)
          end
        end
 
@@ -1341,7 +1341,7 @@
        --@param col:number   Column number.
        --@param sym:string   Symbol.
      1 function Symbol.new(ln, col, sym)
-  2035   return setmetatable(Token.new(TokenType.SYMBOL, ln, col, sym), Symbol)
+  2099   return setmetatable(Token.new(TokenType.SYMBOL, ln, col, sym), Symbol)
        end
 
        --@override
@@ -1364,12 +1364,12 @@
        --@param col:number   Column number.
        --@param val:any      Value.
      1 function Token.new(t, ln, col, val)
- 11766   return setmetatable({
-  5883     type = t,
-  5883     line = ln,
-  5883     col = col,
-  5883     value = val
- 11766   }, Token)
+ 12004   return setmetatable({
+  6002     type = t,
+  6002     line = ln,
+  6002     col = col,
+  6002     value = val
+ 12004   }, Token)
        end
 
 ==============================================================================
@@ -1391,7 +1391,7 @@
        --
        --@param parser:Parser  Parser to use.
      1 function DirectiveParser.new(parser)
-   654   return setmetatable(SubParser.new(parser), DirectiveParser)
+   663   return setmetatable(SubParser.new(parser), DirectiveParser)
        end
 
        --Read the next if directive.
@@ -1529,11 +1529,11 @@
          local self
 
          --(1) create
-   654   self = setmetatable(SubParser.new(parser), ExpParser)
-   654   self._.stmtParser = parser._.stmtParser
+   663   self = setmetatable(SubParser.new(parser), ExpParser)
+   663   self._.stmtParser = parser._.stmtParser
 
          --(2) return
-   654   return self
+   663   return self
        end
 
        --Read an expression.
@@ -2447,16 +2447,16 @@
          local self
 
          --(1) create
-   654   self = setmetatable({_ = {}}, Parser)
-   654   self._.lexer = Lexer.new()
-   654   self._.directiveParser = DirectiveParser.new(self)
-   654   self._.expParser = ExpParser.new(self)
-   654   self._.stmtParser = StmtParser.new(self)
-   654   self._.unpackParser = UnpackParser.new(self)
-   654   self._.expParser._.stmtParser = self._.stmtParser
+   663   self = setmetatable({_ = {}}, Parser)
+   663   self._.lexer = Lexer.new()
+   663   self._.directiveParser = DirectiveParser.new(self)
+   663   self._.expParser = ExpParser.new(self)
+   663   self._.stmtParser = StmtParser.new(self)
+   663   self._.unpackParser = UnpackParser.new(self)
+   663   self._.expParser._.stmtParser = self._.stmtParser
 
          --(2) return
-   654   return self
+   663   return self
        end
 
        --Parse a given text.
@@ -2464,25 +2464,25 @@
        --@param txt:string   Text to parse.
        --@param file?:string File name..
      1 function Parser:parse(txt, file)
-   654   self._.lexer:scan(txt, file)
+   663   self._.lexer:scan(txt, file)
        end
 
        --Parse the next sentence.
        --
        --@return Sentence
      1 function Parser:next()
-  1138   local lex, stmter, direr = self._.lexer, self._.stmtParser, self._.directiveParser
+  1151   local lex, stmter, direr = self._.lexer, self._.stmtParser, self._.directiveParser
          local sent, tok, annots
 
          --(1) remove white lines and read annotations
-  1138   annots = {}
-  1138   tok = lex:advance()
+  1151   annots = {}
+  1151   tok = lex:advance()
          while true do
-  1392     if tok == nil then
+  1405     if tok == nil then
              break
-  1075     elseif tok.type == TokenType.EOL then
+  1084     elseif tok.type == TokenType.EOL then
    226       lex:next()
-   849     elseif tok.type == TokenType.ANNOTATION then
+   858     elseif tok.type == TokenType.ANNOTATION then
     28       lex:next()
     28       table.insert(annots, tok.value)
            else
@@ -2493,17 +2493,17 @@
          end
 
           --(2) parse next sentence
-  1138   tok = lex:advance()
+  1151   tok = lex:advance()
 
-  1138   if tok ~= nil then
-   821     if tok.type == TokenType.DIRECTIVE then
+  1151   if tok ~= nil then
+   830     if tok.type == TokenType.DIRECTIVE then
     17       if tok.value:find("^if") then
     14         sent = direr:nextIf()
      3       elseif tok.value:find("^/") then
      3         sent = direr:nextRunWith()
              end
-   804     elseif tok.type == TokenType.KEYWORD then
-   372       if tok.value == "async" then
+   813     elseif tok.type == TokenType.KEYWORD then
+   381       if tok.value == "async" then
     12         local aux = lex:advance(2)
 
     12         if aux.type == TokenType.KEYWORD and aux.value == "fn" then
@@ -2511,15 +2511,15 @@
                else
      8           sent = stmter:nextAsync()
                end
-   360       elseif tok.value == "break" then
+   369       elseif tok.value == "break" then
      3         sent = stmter:nextBreak()
-   357       elseif tok.value == "const" then
+   366       elseif tok.value == "const" then
     18         sent = stmter:nextConst()
-   339       elseif tok.value == "do" then
+   348       elseif tok.value == "do" then
     11         sent = stmter:nextDo()
-   328       elseif tok.value == "enum" then
+   337       elseif tok.value == "enum" then
     22         sent = stmter:nextEnum(annots)
-   306       elseif tok.value == "export" or tok.value == "pub" or tok.value == "pvt" then
+   315       elseif tok.value == "export" or tok.value == "pub" or tok.value == "pvt" then
     40         local toParse = tok.value
 
     40         tok = lex:advance(2)
@@ -2545,8 +2545,8 @@
      3             sent = stmter:nextExport()
                  end
                end
-   266       elseif tok.value == "fn" or tok.value == "async" then
-    84         sent = stmter:nextFn(annots)
+   275       elseif tok.value == "fn" or tok.value == "async" then
+    93         sent = stmter:nextFn(annots)
    182       elseif tok.value == "for" then
     22         tok = lex:advance(2)
 
@@ -2582,17 +2582,17 @@
              end
            end
 
-   797     if not sent and tok.type == TokenType.SYMBOL and (tok.value == "[" or tok.value == "{") then
+   806     if not sent and tok.type == TokenType.SYMBOL and (tok.value == "[" or tok.value == "{") then
     27       sent = self._.unpackParser:next()
            end
 
-   793     if not sent then
+   802     if not sent then
    436       sent = self:nextExp()
            end
          end
 
          --(3) return
-  1098   return sent
+  1111   return sent
        end
 
        --Read the next expression.
@@ -2659,12 +2659,12 @@
          local self
 
          --(1) create
-   654   self = setmetatable(SubParser.new(parser), StmtParser)
-   654   self._.expParser = parser._.expParser
-   654   self._.varParser = VarStmtParser.new(parser)
+   663   self = setmetatable(SubParser.new(parser), StmtParser)
+   663   self._.expParser = parser._.expParser
+   663   self._.varParser = VarStmtParser.new(parser)
 
          --(2) return
-   654   return self
+   663   return self
        end
 
        --Return the next var statement.
@@ -3166,20 +3166,20 @@
        --
        --@return Sent[]
      1 function StmtParser:_readBody(btype, col)
-   185   local parser = self._.parser
+   194   local parser = self._.parser
          local body
 
          --(1) read body
-   185   if btype == 1 then
+   194   if btype == 1 then
     21     body = {parser:next()}
-   164   elseif btype == 2 then
-   155     body = BlockParser.new(parser, col):next()
+   173   elseif btype == 2 then
+   164     body = BlockParser.new(parser, col):next()
      9   elseif btype == 3 then
      9     body = BlockParser.new(parser):next()
          end
 
          --(2) return
-   185   return body
+   194   return body
        end
 
        --Read a catch clause.
@@ -3187,14 +3187,14 @@
        --@param col:number Column number where this must start.
        --@return CatchCl
      1 function StmtParser:_readCatch(col)
-   159   local lexer, parser = self._.lexer, self._.parser
+   168   local lexer, parser = self._.lexer, self._.parser
          local tok, var, body
 
          --(1) read catch keyword
-   159   tok = lexer:advance()
+   168   tok = lexer:advance()
 
-   159   if tok == nil or not (tok.type == TokenType.KEYWORD and tok.value == "catch" and tok.col == col) then
-   140     return
+   168   if tok == nil or not (tok.type == TokenType.KEYWORD and tok.value == "catch" and tok.col == col) then
+   149     return
          end
 
     19   lexer:next()
@@ -3221,14 +3221,14 @@
        --@param col:number Column number where this must start.
        --@return FinallyCl
      1 function StmtParser:_readFinally(col)
-   154   local lexer, parser = self._.lexer, self._.parser
+   163   local lexer, parser = self._.lexer, self._.parser
          local tok, body
 
          --(1) read finally keyword
-   154   tok = lexer:advance()
+   163   tok = lexer:advance()
 
-   154   if tok == nil or not (tok.type == TokenType.KEYWORD and tok.value == "finally" and tok.col == col) then
-   141     return
+   163   if tok == nil or not (tok.type == TokenType.KEYWORD and tok.value == "finally" and tok.col == col) then
+   150     return
          end
 
     13   lexer:next()
@@ -3245,34 +3245,34 @@
        --
        --@return FnStmt
      1 function StmtParser:nextFn(annots)
-    93   local lex = self._.lexer
+   102   local lex = self._.lexer
          local tok, ln, col, visib, async, itype, name, params, rtype, rvar, body, catch, fin
 
          --(1) read visibility
-    93   tok = lex:advance()
-    93   ln, col = tok.line, tok.col
+   102   tok = lex:advance()
+   102   ln, col = tok.line, tok.col
 
-    93   if tok.type == TokenType.KEYWORD and (tok.value == "export" or tok.value == "pub" or tok.value == "pvt") then
+   102   if tok.type == TokenType.KEYWORD and (tok.value == "export" or tok.value == "pub" or tok.value == "pvt") then
      5     lex:next()
      5     visib = tok.value
          end
 
          --(2) read async
-    93   tok = lex:advance()
+   102   tok = lex:advance()
 
-    93   if tok.type == TokenType.KEYWORD and tok.value == "async" then
+   102   if tok.type == TokenType.KEYWORD and tok.value == "async" then
      4     lex:next()
      4     async = true
          else
-    89     async = false
+    98     async = false
          end
 
          --(3) read fn type.name
-    93   lex:next(TokenType.KEYWORD, "fn")
-    93   name = lex:next(TokenType.NAME).value
+   102   lex:next(TokenType.KEYWORD, "fn")
+   102   name = lex:next(TokenType.NAME).value
 
-    93   tok = lex:advance()
-    93   if tok.type == TokenType.SYMBOL and (tok.value == "." or tok.value == ":") then
+   102   tok = lex:advance()
+   102   if tok.type == TokenType.SYMBOL and (tok.value == "." or tok.value == ":") then
     27     lex:next()
     27     visib = (tok.value == "." and "pub" or "pvt")
     27     itype = name
@@ -3280,17 +3280,17 @@
          end
 
          --(3) read parameters, return type and return variable
-    93   params = self:_readFnParams()
+   102   params = self:_readFnParams()
 
-    90   if not async then
-    86     rvar = self:_readFnReturnVar()
-    85     rtype = self:_readFnType()
+    99   if not async then
+    95     rvar = self:_readFnReturnVar()
+    94     rtype = self:_readFnType()
          end
 
          --(4) read body
-    88   tok = lex:advance()
+    97   tok = lex:advance()
 
-    88   if tok.type == TokenType.SYMBOL and tok.value == "=" then
+    97   if tok.type == TokenType.SYMBOL and tok.value == "=" then
     16     lex:next()
     16     body = {self._.expParser:_readExp()}
 
@@ -3301,94 +3301,94 @@
     16       body[1]:insert(exp)
            end
          else
-    72     lex:next(TokenType.EOL)
-    72     body = self:_readBody(2, col)
+    81     lex:next(TokenType.EOL)
+    81     body = self:_readBody(2, col)
          end
 
          --(5) read rest
-    88   catch = self:_readCatch(col)
-    88   fin = self:_readFinally(col)
+    97   catch = self:_readCatch(col)
+    97   fin = self:_readFinally(col)
 
          --(6) return
-    88   return FnStmt.new(ln, col, annots, visib, async, itype, name, params, rtype, rvar, body, catch, fin)
+    97   return FnStmt.new(ln, col, annots, visib, async, itype, name, params, rtype, rvar, body, catch, fin)
        end
 
        --Read the function parameters.
        --
        --@return Param[]
      1 function StmtParser:_readFnParams()
-   119   local lex = self._.lexer
-   119   local params = Params.new()
+   128   local lex = self._.lexer
+   128   local params = Params.new()
          local tok
 
          --(1) read (
-   119   lex:next(TokenType.SYMBOL, "(")
+   128   lex:next(TokenType.SYMBOL, "(")
 
          --(2) read params
-   119   tok = lex:advance()
+   128   tok = lex:advance()
 
-   119   if not (tok.type == TokenType.SYMBOL and tok.value == ")") then
+   128   if not (tok.type == TokenType.SYMBOL and tok.value == ")") then
            while true do
              local const, mod, name, opt, dtype, val
 
              --const
-    88       tok = lex:advance()
+    97       tok = lex:advance()
 
-    88       if tok.type == TokenType.KEYWORD and tok.value == "const" then
+    97       if tok.type == TokenType.KEYWORD and tok.value == "const" then
      3         lex:next()
      3         const = true
              else
-    85         const = false
+    94         const = false
              end
 
              --. or : or ...
-    88       tok = lex:advance()
+    97       tok = lex:advance()
 
-    88       if tok.type == TokenType.SYMBOL and (tok.value == "." or tok.value == ":" or tok.value == "...") then
+    97       if tok.type == TokenType.SYMBOL and (tok.value == "." or tok.value == ":" or tok.value == "...") then
     15         lex:next()
     15         mod = tok.value
              end
 
              --name
-    88       name = lex:next(TokenType.NAME).value
+    97       name = lex:next(TokenType.NAME).value
 
              --optional?
-    88       tok = lex:advance()
+    97       tok = lex:advance()
 
-    88       if tok.type == TokenType.SYMBOL and tok.value == "?" then
-    26         lex:next()
-    26         opt = true
+    97       if tok.type == TokenType.SYMBOL and tok.value == "?" then
+    29         lex:next()
+    29         opt = true
              end
 
              --type
-    88       tok = lex:advance()
+    97       tok = lex:advance()
 
-    88       if tok.type == TokenType.SYMBOL and tok.value == ":" then
-    16         dtype = self:_readFnParamType()
+    97       if tok.type == TokenType.SYMBOL and tok.value == ":" then
+    25         dtype = self:_readFnParamType()
              else
     72         dtype = nil
              end
 
              --default value
-    88       if not opt then
-    62         tok = lex:advance()
+    97       if not opt then
+    68         tok = lex:advance()
 
-    62         if tok.type == TokenType.SYMBOL and tok.value == "=" then
+    68         if tok.type == TokenType.SYMBOL and tok.value == "=" then
      3           opt = true
      3           val = self:_readFnParamValue()
-    59         elseif tok.type == TokenType.SYMBOL and tok.value == ":=" then
+    65         elseif tok.type == TokenType.SYMBOL and tok.value == ":=" then
      7           opt = true
      7           val, dtype = self:_readFnParamValueWithInference()
                end
              end
 
              --insert param
-    87       params:insert(Param.new(const, mod, name, opt, dtype, val))
+    96       params:insert(Param.new(const, mod, name, opt, dtype, val))
 
              --,
-    87       tok = lex:advance()
+    96       tok = lex:advance()
 
-    87       if tok.type == TokenType.SYMBOL and tok.value == "," then
+    96       if tok.type == TokenType.SYMBOL and tok.value == "," then
     23         lex:next()
              else
                break
@@ -3397,77 +3397,109 @@
          end
 
          --(3) read close
-   118   lex:next(TokenType.SYMBOL, ")")
+   127   lex:next(TokenType.SYMBOL, ")")
 
          --(4) return
-   116   return params
+   125   return params
        end
 
        --Read the parameter type.
        --
        --@return string
      1 function StmtParser:_readFnParamType()
-    16   local lex = self._.lexer
+    25   local lex = self._.lexer
          local tok, dtype
 
          --(1) read
-    16   lex:next(TokenType.SYMBOL, ":")
+    25   lex:next(TokenType.SYMBOL, ":")
 
-    16   tok = lex:advance()
-    16   if not (tok.type == TokenType.SYMBOL and tok.value == "{") then
+    25   tok = lex:advance()
+    25   if tok.type == TokenType.SYMBOL and tok.value == "(" then
+     7     lex:nextSymbol("(")
+
+     7     dtype = {}
+           while true do
+    11       table.insert(dtype, lex:nextName().value)
+
+    11       tok = lex:advance()
+    11       if not (tok.type == TokenType.SYMBOL and tok.value == ",") then
+               break
+             end
+
+     4       lex:nextSymbol(",")
+           end
+
+     7     lex:nextSymbol(")")
+    18   elseif not (tok.type == TokenType.SYMBOL and tok.value == "{") then
      8     dtype = lex:next(TokenType.NAME).value
          else
-     8     lex:next()
+    10     lex:next()
 
-     8     dtype = {}
+    10     dtype = {}
 
-     8     tok = lex:advance()
-     8     if tok.type == TokenType.SYMBOL and tok.value == "}" then
+    10     tok = lex:advance()
+    10     if tok.type == TokenType.SYMBOL and tok.value == "}" then
      2       lex:next()
            else
              while true do
                --read field
-               local pname, ptype, pman
+               local pname, ptype, pman, readType
 
                --name
-    11         pname = lex:next(TokenType.NAME).value
+    14         pname = lex:next(TokenType.NAME).value
 
-               --?:type
-    11         tok = lex:advance()
+               --?:
+    14         tok = lex:advance()
 
-    11         if tok.type == TokenType.SYMBOL and tok.value == "?" then
-     4           lex:next(TokenType.SYMBOL, "?")
-     4           lex:next(TokenType.SYMBOL, ":")
-     4           ptype = lex:next(TokenType.NAME).value
+    14         if tok.type == TokenType.SYMBOL and tok.value == "?" then
+     4           lex:nextSymbol("?")
      4           pman = false
+     4           readType = true
                else
-     7           pman = true
-
-     7           tok = lex:advance()
-     7           if tok.type == TokenType.SYMBOL and tok.value == ":" then
-     3             lex:next()
-     3             ptype = lex:next(TokenType.NAME).value
-                 else
-     4             ptype = "any"
-                 end
+    10           pman = true
+    10           tok = lex:advance()
+    10           readType = (tok.type == TokenType.SYMBOL and tok.value == ":")
                end
 
-    11         table.insert(dtype, {name = pname, type = ptype, mandatory = pman})
+               --type
+    14         if readType then
+    10           lex:nextSymbol(":")
+    10           tok = lex:advance()
+    10           if tok.type == TokenType.SYMBOL and tok.value == "(" then
+     3             ptype = {}
+     3             lex:nextSymbol("(")
+                   while true do
+     5               table.insert(ptype, lex:nextName().value)
+     5               tok = lex:advance()
+     5               if not (tok.type == TokenType.SYMBOL and tok.value == ",") then
+                       break
+                     end
+     2               lex:nextSymbol(",")
+                   end
+     3             lex:nextSymbol(")")
+                 else
+     7             ptype = lex:nextName().value
+                 end
+               else
+     4           ptype = "any"
+               end
+
+    14         table.insert(dtype, {name = pname, type = ptype, mandatory = pman})
 
                --read next or end
-    11         tok = lex:advance()
-    11         if tok.type == TokenType.SYMBOL and tok.value == "}" then
-     6           lex:next()
+    14         tok = lex:advance()
+    14         if tok.type == TokenType.SYMBOL and tok.value == "}" then
+     8           lex:next()
                  break
                end
 
-     5         lex:next(TokenType.SYMBOL, ",")
+     6         lex:next(TokenType.SYMBOL, ",")
              end --while
            end
          end
 
          --(2) return
-    16   return dtype
+    25   return dtype
        end
 
        --Read the parameter value wihtout inference.
@@ -3521,32 +3553,32 @@
        --
        --@return string
      1 function StmtParser:_readFnType()
-    96   local lex = self._.lexer
+   105   local lex = self._.lexer
          local tok, rtype
 
          --(1) read
-    96   tok = lex:advance()
+   105   tok = lex:advance()
 
-    96   if tok.type == TokenType.SYMBOL and tok.value == ":" then
+   105   if tok.type == TokenType.SYMBOL and tok.value == ":" then
      8     lex:next()  --:
      8     rtype = lex:next(TokenType.NAME).value
          end
 
          --(2) return
-    95   return rtype
+   104   return rtype
        end
 
        --Read the function return variable.
        --
        --@return string
      1 function StmtParser:_readFnReturnVar()
-    97   local lex = self._.lexer
+   106   local lex = self._.lexer
          local tok, rvar
 
          --(1) read
-    97   tok = lex:advance()
+   106   tok = lex:advance()
 
-    97   if tok.type == TokenType.SYMBOL and tok.value == "->" then
+   106   if tok.type == TokenType.SYMBOL and tok.value == "->" then
     18     lex:next()  -- ->
     18     tok = lex:next()
 
@@ -3564,7 +3596,7 @@
          end
 
          --(2) return
-    96   return rvar
+   105   return rvar
        end
 
        --Read a type statement.
@@ -3959,7 +3991,7 @@
        --
        --@param parser:Parser  Parent parser.
      1 function UnpackParser.new(parser)
-   654   return setmetatable(SubParser.new(parser), UnpackParser)
+   663   return setmetatable(SubParser.new(parser), UnpackParser)
        end
 
        --Parse the next unpack sentence.
@@ -4233,28 +4265,28 @@
      1 function BlockParser.new(parser, col)
          local self
 
-   196   self = setmetatable(SubParser.new(parser), BlockParser)
-   196   if col == nil then
+   205   self = setmetatable(SubParser.new(parser), BlockParser)
+   205   if col == nil then
      9     self._.col = 0
      9     self._.type = "end"
          else
-   187     self._.col = col
-   187     self._.type = "\n"
+   196     self._.col = col
+   196     self._.type = "\n"
          end
 
-   196   return self
+   205   return self
        end
 
        --Parse the next block.
        --
        --@return Sent[]
      1 function BlockParser:next()
-   196   local lex, parser, btype = self._.lexer, self._.parser, self._.type
+   205   local lex, parser, btype = self._.lexer, self._.parser, self._.type
          local tok
-   196   local col, block = self._.col, {}
+   205   local col, block = self._.col, {}
 
          --(1) see if empty function
-   196   if btype == "end" then
+   205   if btype == "end" then
      9     tok = lex:advance()
 
      9     if tok.type == TokenType.KEYWORD and tok.value == "end" then
@@ -4267,19 +4299,19 @@
          while true do
            local sent
 
-   320     tok = lex:advance()
+   329     tok = lex:advance()
 
            --remove white lines
-   448     while tok and tok.type == TokenType.EOL do
+   457     while tok and tok.type == TokenType.EOL do
    128       lex:next()
    128       tok = lex:advance()
            end
 
-   320     if btype == "end" and tok and tok.type == TokenType.KEYWORD and tok.value == "end" then
+   329     if btype == "end" and tok and tok.type == TokenType.KEYWORD and tok.value == "end" then
              break
            end
 
-   318     if tok == nil or tok.col <= col then
+   327     if tok == nil or tok.col <= col then
              break
            end
 
@@ -4294,12 +4326,12 @@
          end
 
          --(3) read } if needed
-   189   if btype == "end" then
+   198   if btype == "end" then
      2     lex:next(TokenType.KEYWORD, "end")
          end
 
          --(3) return
-   189   return block
+   198   return block
        end
 
 ==============================================================================
@@ -4640,19 +4672,19 @@
          local self
 
          --(1) create
-    88   self = setmetatable(ObjectStmt.new(StmtType.FN, ln, col, name, visib), FnStmt)
-    88   self.async = async
-    88   self.itype = itype
-    88   self.params = params
-    88   self.rtype = rtype
-    88   self.rvar = rvar
-    88   self.body = body
-    88   self.catch = catch
-    88   self.finally = fin
-    88   self.annots = annots or {}
+    97   self = setmetatable(ObjectStmt.new(StmtType.FN, ln, col, name, visib), FnStmt)
+    97   self.async = async
+    97   self.itype = itype
+    97   self.params = params
+    97   self.rtype = rtype
+    97   self.rvar = rvar
+    97   self.body = body
+    97   self.catch = catch
+    97   self.finally = fin
+    97   self.annots = annots or {}
 
          --(2) return
-    88   return self
+    97   return self
        end
 
 ==============================================================================
@@ -5202,12 +5234,12 @@
          local self
 
          --(1) create
-   131   self = setmetatable(Stmt.new(sub, ln, col), ObjectStmt)
-   131   self.name = name
-   131   self.visib = visib
+   140   self = setmetatable(Stmt.new(sub, ln, col), ObjectStmt)
+   140   self.name = name
+   140   self.visib = visib
 
          --(2) return
-   131   return self
+   140   return self
        end
 
 ==============================================================================
@@ -5398,17 +5430,17 @@
          local self
 
          --(1) create
-   174   self = setmetatable({
-    87     const = const,
-    87     modifier = mod,  --. or : or ...
-    87     name = name,
-    87     optional = not not opt,
-    87     type = dtype,
-    87     value = val
-   174   }, Param)
+   192   self = setmetatable({
+    96     const = const,
+    96     modifier = mod,  --. or : or ...
+    96     name = name,
+    96     optional = not not opt,
+    96     type = dtype,
+    96     value = val
+   192   }, Param)
 
          --(2) return
-    87   return self
+    96   return self
        end
 
 ==============================================================================
@@ -5422,7 +5454,7 @@
 
        --Constructor.
      1 function Params.new()
-   121   return setmetatable({}, Params)
+   130   return setmetatable({}, Params)
        end
 
        --Check whether a parameter exists.
@@ -5629,12 +5661,12 @@
 
        --Constructor.
      1 function Sent.new(t, ln, col)
-  2672   return setmetatable({
-  1336     type = t,
-  1336     line = ln,
-  1336     col = col,
-  1336     _ = {}
-  2672   }, Sent)
+  2690   return setmetatable({
+  1345     type = t,
+  1345     line = ln,
+  1345     col = col,
+  1345     _ = {}
+  2690   }, Sent)
        end
 
 ==============================================================================
@@ -5707,11 +5739,11 @@
          local self
 
          --(1) create
-   345   self = setmetatable(Sent.new(SentType.STMT, ln, col), Stmt)
-   345   self.subtype = sub
+   354   self = setmetatable(Sent.new(SentType.STMT, ln, col), Stmt)
+   354   self.subtype = sub
 
          --(2) return
-   345   return self
+   354   return self
        end
 
 ==============================================================================
@@ -5753,15 +5785,15 @@
        --@param Parser:Parser  Parent parser.
      1 function SubParser.new(parser)
          --(1) arguments
-  3466   if not parser then error("parser expected.") end
+  3520   if not parser then error("parser expected.") end
 
          --(2) create
-  6932   return setmetatable({
-  3466     _ = {
-  3466       parser = parser,
-  3466       lexer = parser._.lexer
-  3466     }
-  6932   }, SubParser)
+  7040   return setmetatable({
+  3520     _ = {
+  3520       parser = parser,
+  3520       lexer = parser._.lexer
+  3520     }
+  7040   }, SubParser)
        end
 
        --Read next end of lines.
@@ -6335,11 +6367,11 @@
          local self
 
          --(1) create
-   654   self = setmetatable(SubParser.new(parser), VarStmtParser)
-   654   self._.expParser = parser._.expParser
+   663   self = setmetatable(SubParser.new(parser), VarStmtParser)
+   663   self._.expParser = parser._.expParser
 
          --(2) return
-   654   return self
+   663   return self
        end
 
        --Read a const statement.
@@ -6693,18 +6725,18 @@
 
        --Constructor.
      1 function Trans.new()
-   590   return setmetatable({
-   295     _ = {
+   598   return setmetatable({
+   299     _ = {
 
-   295     }
-   590   }, Trans)
+   299     }
+   598   }, Trans)
        end
 
        --Confirgue the transformer.
        --
        --@param parser:Parser  Parser to use.
      1 function Trans:transform(parser)
-   294   self._.parser = parser
+   298   self._.parser = parser
        end
 
        --Transform the next sentence or file from the parser configured previously.
@@ -6742,42 +6774,42 @@
          local self
 
          --(1) create
-   294   self = setmetatable(Trans.new(opts), JsTrans)
-   294   self._.directiveTrans = DirectiveTrans.new(self)
-   294   self._.expTrans = ExpTrans.new(self)
-   294   self._.stmtTrans = StmtTrans.new(self)
-   294   self._.unpackTrans = UnpackTrans.new(self)
+   298   self = setmetatable(Trans.new(opts), JsTrans)
+   298   self._.directiveTrans = DirectiveTrans.new(self)
+   298   self._.expTrans = ExpTrans.new(self)
+   298   self._.stmtTrans = StmtTrans.new(self)
+   298   self._.unpackTrans = UnpackTrans.new(self)
 
          --(2) return
-   294   return self
+   298   return self
        end
 
        --@override
      1 function JsTrans:next(opts)
-   293   local parser = self._.parser
+   297   local parser = self._.parser
          local out
 
          --(1) arguments
-   293   if not opts then
-   291     opts = {}
+   297   if not opts then
+   295     opts = {}
          end
 
          --(2) transform
-   293   local first = false
+   297   local first = false
 
-   293   out = ""
+   297   out = ""
          while true do
            local sent
 
-   587     sent = parser:next()
+   595     sent = parser:next()
 
-   587     if sent == nil then
+   595     if sent == nil then
              break
            end
 
-   294     out = out .. self:_trans(sent, ";") .. "\n"
+   298     out = out .. self:_trans(sent, ";") .. "\n"
 
-   294     if opts.importDogmalang then
+   298     if opts.importDogmalang then
      3       if not first then
      2         first = true
 
@@ -6791,16 +6823,16 @@
          end
 
          --(2) return
-   293   return out
+   297   return out
        end
 
      1 function JsTrans:_trans(sent, eoe)
-   505   if sent.type == SentType.DIRECTIVE then
+   509   if sent.type == SentType.DIRECTIVE then
     10     return self._.directiveTrans:transform(sent)
-   495   elseif sent.type == SentType.EXP then
+   499   elseif sent.type == SentType.EXP then
    320     return self._.expTrans:transform(sent) .. (eoe or "")
-   175   elseif sent.type == SentType.STMT then
-   160     return self._.stmtTrans:transform(sent)
+   179   elseif sent.type == SentType.STMT then
+   164     return self._.stmtTrans:transform(sent)
     15   elseif sent.type == SentType.UNPACK then
     15     return self._.unpackTrans:transform(sent)
          end
@@ -6823,7 +6855,7 @@
        --
        --@param trans:Trans  Parent transformer.
      1 function DirectiveTrans.new(trans)
-   294   return setmetatable(SubTrans.new(trans), DirectiveTrans)
+   298   return setmetatable(SubTrans.new(trans), DirectiveTrans)
        end
 
        --Transform a directive.
@@ -6895,7 +6927,7 @@
 
        --Constructor.
      1 function ExpTrans.new(trans)
-   294   return setmetatable(SubTrans.new(trans), ExpTrans)
+   298   return setmetatable(SubTrans.new(trans), ExpTrans)
        end
 
        --Transform an expression.
@@ -7466,7 +7498,7 @@
        --
        --@param trans:Trans  Parent transformer.
      1 function StmtTrans.new(trans)
-   294   return setmetatable(SubTrans.new(trans), StmtTrans)
+   298   return setmetatable(SubTrans.new(trans), StmtTrans)
        end
 
        --Transform a statement.
@@ -7474,20 +7506,20 @@
        --@param stmt:Stmt  Statement to transform.
        --@return string
      1 function StmtTrans:transform(stmt)
-   160   if stmt.subtype == StmtType.ASYNC then
+   164   if stmt.subtype == StmtType.ASYNC then
      4     return self:_transAsync(stmt)
-   156   elseif stmt.subtype == StmtType.BREAK then
+   160   elseif stmt.subtype == StmtType.BREAK then
      1     return self:_transBreak(stmt)
-   155   elseif stmt.subtype == StmtType.CONST then
+   159   elseif stmt.subtype == StmtType.CONST then
      7     return self:_transConst(stmt)
-   148   elseif stmt.subtype == StmtType.DO then
+   152   elseif stmt.subtype == StmtType.DO then
      5     return self:_transDo(stmt)
-   143   elseif stmt.subtype == StmtType.ENUM then
+   147   elseif stmt.subtype == StmtType.ENUM then
      4     return self:_transEnum(stmt)
-   139   elseif stmt.subtype == StmtType.EXPORT then
+   143   elseif stmt.subtype == StmtType.EXPORT then
      1     return self:_transExport(stmt)
-   138   elseif stmt.subtype == StmtType.FN then
-    52     return self:_transFn(stmt)
+   142   elseif stmt.subtype == StmtType.FN then
+    56     return self:_transFn(stmt)
     86   elseif stmt.subtype == StmtType.FOR then
      7     return self:_transFor(stmt)
     79   elseif stmt.subtype == StmtType.FOR_EACH then
@@ -7612,12 +7644,12 @@
        end
 
      1 function StmtTrans:_transVisib(visib)
-    40   if visib == "export" then
+    44   if visib == "export" then
      4     return "export default "
-    36   elseif visib == "pub" then
+    40   elseif visib == "pub" then
      8     return "export "
          else
-    28     return ""
+    32     return ""
          end
        end
 
@@ -7801,31 +7833,31 @@
        --
        --2return string
      1 function StmtTrans:_transBody(body)
-   103   local trans = self._.trans
+   107   local trans = self._.trans
          local code
 
          --(1) transform
-   103   code = "{"
+   107   code = "{"
 
-   177   for _, sent in ipairs(body) do
+   181   for _, sent in ipairs(body) do
     74     code = code .. trans:_trans(sent, ";")
          end
 
-   103   code = code .. "}"
+   107   code = code .. "}"
 
          --(2) return
-   103   return code
+   107   return code
        end
 
        --Transform a catch clause.
        --
        --@return string
      1 function StmtTrans:_transCatch(catch)
-    78   local trans = self._.trans
+    82   local trans = self._.trans
          local code
 
          --(1) transform
-    78   if catch then
+    82   if catch then
     10     code = string.format(" catch(%s) {", catch.var or "_")
 
     20     for _, sent in ipairs(catch.body) do
@@ -7836,18 +7868,18 @@
          end
 
          --(2) return
-    78   return code or ""
+    82   return code or ""
        end
 
        --Transform a finally clause.
        --
        --@return string
      1 function StmtTrans:_transFinally(fin)
-    74   local trans = self._.trans
+    78   local trans = self._.trans
          local code
 
          --(1) transform
-    74   if fin then
+    78   if fin then
      7     code = " finally {"
 
     14     for _, sent in ipairs(fin.body) do
@@ -7858,7 +7890,7 @@
          end
 
          --(2) return
-    74   return code or ""
+    78   return code or ""
        end
 
        --Transform a do statement.
@@ -8046,49 +8078,49 @@
        --
        --@return string
      1 function StmtTrans:_transParams(params)
-    53   local trans = self._.trans
+    57   local trans = self._.trans
          local code
 
          --(1) transform
-    53   if #params > 0 then
-    34     code = ""
+    57   if #params > 0 then
+    38     code = ""
 
-    84     for i, p in ipairs(params) do
-    50       if i > 1 then
+    92     for i, p in ipairs(params) do
+    54       if i > 1 then
     16         code = code .. ", "
              end
 
-    50       if p.modifier == "..." then
+    54       if p.modifier == "..." then
      1         code = code .. "..."
              end
 
-    50       code = code .. transName(p.name)
+    54       code = code .. transName(p.name)
 
-    50       if p.value then
+    54       if p.value then
      1         code = code .. " = " .. trans:_trans(p.value)
              end
            end
          end
 
          --(2) return
-    53   return code or ""
+    57   return code or ""
        end
 
        --Return the code for checking the function parameters.
        --
        --@return string
      1 function StmtTrans:_transParamsCheck(params)
-         local function toJs(obj)
+         local function transType(obj)
            local repr
 
      3     repr = "{"
-     9     for ix, val in ipairs(obj) do
-    12       repr = repr .. (ix == 1 and "" or ", ") .. string.format(
-     6         "%s: {type: %s, mandatory: %s}",
-     6         val.name,
-     6         val.type,
+    10     for ix, val in ipairs(obj) do
+    14       repr = repr .. (ix == 1 and "" or ", ") .. string.format(
+     7         "%s: {type: %s, mandatory: %s}",
+     7         val.name,
+     7         type(val.type) == "string" and val.type or string.format("[%s]", table.concat(val.type, ", ")),
                val.mandatory
-     6       )
+     7       )
            end
      3     repr = repr .. "}"
 
@@ -8098,18 +8130,27 @@
          local code
 
          --(1) transform
-    53   if #params > 0 then
-    34     code = ""
+    57   if #params > 0 then
+    38     code = ""
 
-    84     for _, p in ipairs(params) do
-    50       if not p.optional and p.modifier ~= "..." then  --mandatory parameter with(out) type check
-    27         if type(p.type) == "table" then
-     4           code = code .. string.format(
-     2             [[dogma.paramExpectedToHave("%s", %s, %s);]],
-     2             transName(p.name),
-     2             transName(p.name),
-     2             toJs(p.type)
-     2           )
+    92     for _, p in ipairs(params) do
+    54       if not p.optional and p.modifier ~= "..." then  --mandatory parameter with(out) type check
+    29         if type(p.type) == "table" then
+     4           if type(p.type[1]) == "string" then
+     4             code = code .. string.format(
+     2               [[dogma.paramExpected("%s", %s, [%s]);]],
+     2               transName(p.name),
+     2               transName(p.name),
+     2               table.concat(p.type, ", ")
+     2             )
+                 else
+     4             code = code .. string.format(
+     2               [[dogma.paramExpectedToHave("%s", %s, %s);]],
+     2               transName(p.name),
+     2               transName(p.name),
+     2               transType(p.type)
+                   )
+                 end
                else
     50           code = code .. string.format(
     25             [[dogma.paramExpected("%s", %s, %s);]],
@@ -8118,14 +8159,23 @@
     25             p.type or "null"
     23           )
                end
-    23       elseif p.type then  --optional parameter with type check
-     3         if type(p.type) == "table" then
-     2           code = code .. string.format(
-     1             [[dogma.paramExpectedToHave("%s", %s, %s);]],
-     1             transName(p.name),
-     1             transName(p.name),
-     1             toJs(p.type)
-     1           )
+    25       elseif p.type then  --optional parameter with type check
+     5         if type(p.type) == "table" then
+     3           if type(p.type[1]) == "string" then
+     4             code = code .. string.format(
+     2               [[dogma.paramExpectedToBe("%s", %s, [%s]);]],
+     2               transName(p.name),
+     2               transName(p.name),
+     2               table.concat(p.type, ", ")
+     2             )
+                 else
+     2             code = code .. string.format(
+     1               [[dogma.paramExpectedToHave("%s", %s, %s);]],
+     1               transName(p.name),
+     1               transName(p.name),
+     1               transType(p.type)
+                   )
+                 end
                else
      4           code = code .. string.format(
      2             [[dogma.paramExpectedToBe("%s", %s, %s);]],
@@ -8139,7 +8189,7 @@
          end
 
          --(2) return
-    53   return code or ""
+    57   return code or ""
        end
 
        --Return the code for setting . or : attributes from parameters.
@@ -8149,18 +8199,18 @@
          local code
 
          --(1) transform
-    46   if #params > 0 then
-    28     code = ""
+    50   if #params > 0 then
+    32     code = ""
 
-    71     for _, p in ipairs(params) do
-    43       if p.modifier == "." then
+    79     for _, p in ipairs(params) do
+    47       if p.modifier == "." then
     18         code = code .. string.format(
      9           [[Object.defineProperty(this, "%s", {value: %s, enum: true, writable: %s});]],
      9           transName(p.name),
      9           transName(p.name),
      9           not p.const
      9         )
-    34       elseif p.modifier == ":" then
+    38       elseif p.modifier == ":" then
      2         code = code .. string.format(
      1           [[Object.defineProperty(this, "_%s", {value: %s, writable: %s});]],
      1           p.name,
@@ -8172,7 +8222,7 @@
          end
 
          --(2) return
-    46   return code or ""
+    50   return code or ""
        end
 
        --Return a call to the super constructor.
@@ -8205,10 +8255,10 @@
        --
        --@return string
      1 function StmtTrans:_transFn(stmt)
-    52   if stmt.itype then
+    56   if stmt.itype then
     24     return self:_transTypeFn(stmt)
          else
-    28     return self:_transStdFn(stmt)
+    32     return self:_transStdFn(stmt)
          end
        end
 
@@ -8216,7 +8266,7 @@
          local code
 
          --(1) transform
-    28   if tablex.find(fn.annots, "todo") then
+    32   if tablex.find(fn.annots, "todo") then
      2     code = string.format(
      1       "%s%sfunction%s %s() { todo(); }",
      1       self:_transVisib(fn.visib),
@@ -8225,30 +8275,30 @@
              fn.name
      2     )
          else
-    54     code = string.format(
-    27       "%s%sfunction%s %s(%s) { ",
-    27       self:_transVisib(fn.visib),
-    27       fn.async and "async " or "",
-    27       tablex.find(fn.annots, "iter") and "*" or "",
-    27       fn.name,
-    27       self:_transParams(fn.params)
-    27     )
+    62     code = string.format(
+    31       "%s%sfunction%s %s(%s) { ",
+    31       self:_transVisib(fn.visib),
+    31       fn.async and "async " or "",
+    31       tablex.find(fn.annots, "iter") and "*" or "",
+    31       fn.name,
+    31       self:_transParams(fn.params)
+    31     )
 
-    27     code = code .. self:_transReturnVar(fn)
-    27     code = code .. self:_transParamsCheck(fn.params)
-    27     code = code .. self:_transSelfParams(fn.params)
-    27     if fn.catch or fn.finally then code = code .. " try " end
-    27     code = code .. self:_transBody(fn.body)
-    27     code = code .. self:_transCatch(fn.catch)
-    27     code = code .. self:_transFinally(fn.finally)
-    27     if fn.rvar then
+    31     code = code .. self:_transReturnVar(fn)
+    31     code = code .. self:_transParamsCheck(fn.params)
+    31     code = code .. self:_transSelfParams(fn.params)
+    31     if fn.catch or fn.finally then code = code .. " try " end
+    31     code = code .. self:_transBody(fn.body)
+    31     code = code .. self:_transCatch(fn.catch)
+    31     code = code .. self:_transFinally(fn.finally)
+    31     if fn.rvar then
      9       code = code .. string.format(" return %s;", fn.rvar == "self" and "this" or fn.rvar)
            end
-    27     code = code .. " }"
+    31     code = code .. " }"
          end
 
          --(2) return
-    28   return code
+    32   return code
        end
 
      1 function StmtTrans:_transTypeFn(stmt)
@@ -8423,9 +8473,9 @@
          local code
 
          --(1) transform
-    51   code = ""
+    55   code = ""
 
-    51   if fn.rvar then
+    55   if fn.rvar then
     14     if fn.rvar ~= "self" and not fn.params:has(fn.rvar) then
      9       if fn.rtype == "map" then
      1         code = string.format("let %s = {};", fn.rvar)
@@ -8444,7 +8494,7 @@
          end
 
          --(2) return
-    51   return code
+    55   return code
        end
 
        --Transform an if statement.
@@ -8572,11 +8622,11 @@
        --
        --@param trans:Trans  Parent transformer.
      1 function SubTrans.new(trans)
-  2352   return setmetatable({
-  1176     _ = {
-  1176       trans = trans
-  1176     }
-  2352   }, SubTrans)
+  2384   return setmetatable({
+  1192     _ = {
+  1192       trans = trans
+  1192     }
+  2384   }, SubTrans)
        end
 
        --Last seed used.
@@ -8625,7 +8675,7 @@
        --
        --@param trans:Trans  Parent transformer.
      1 function UnpackTrans.new(trans)
-   294   return setmetatable(SubTrans.new(trans), UnpackTrans)
+   298   return setmetatable(SubTrans.new(trans), UnpackTrans)
        end
 
        --Transform an unpack sentence.
@@ -8909,30 +8959,30 @@
 
      1 package.loaded[...] = {
          transName = function(name)
-   476     local KEYWORDS = {
-   476       "abstract", "await",
-   476       "break",
-   476       "case", "char", "class", "const", "continue",
-   476       "debugger", "do",
-   476       "else", "enum", "export", "extends",
-   476       "final", "finally", "for", "function",
-   476       "goto",
-   476       "if", "implements", "import", "in", "instanceof", "interface",
-   476       "let",
-   476       "native", "new",
-   476       "private", "protected", "public",
-   476       "return",
-   476       "static", "super", "switch",
-   476       "this", "throw", "transient", "try", "typeof",
-   476       "var", "volatile",
-   476       "while", "with",
+   488     local KEYWORDS = {
+   488       "abstract", "await",
+   488       "break",
+   488       "case", "char", "class", "const", "continue",
+   488       "debugger", "do",
+   488       "else", "enum", "export", "extends",
+   488       "final", "finally", "for", "function",
+   488       "goto",
+   488       "if", "implements", "import", "in", "instanceof", "interface",
+   488       "let",
+   488       "native", "new",
+   488       "private", "protected", "public",
+   488       "return",
+   488       "static", "super", "switch",
+   488       "this", "throw", "transient", "try", "typeof",
+   488       "var", "volatile",
+   488       "while", "with",
              "yield"
-   476     }
+   488     }
 
-   476     if tablex.find(KEYWORDS, name) then
+   488     if tablex.find(KEYWORDS, name) then
      5       return name .. "_"
            else
-   471       return name
+   483       return name
            end
          end
      1 }
@@ -8967,7 +9017,7 @@ File                                                                 Hits Missed
 /home/me/.luarocks/share/lua/5.3/dogma/syn/NonTerminalType.lua       4    0      100.00%
 /home/me/.luarocks/share/lua/5.3/dogma/syn/Parser.lua                107  0      100.00%
 /home/me/.luarocks/share/lua/5.3/dogma/syn/SentType.lua              6    0      100.00%
-/home/me/.luarocks/share/lua/5.3/dogma/syn/StmtParser.lua            569  0      100.00%
+/home/me/.luarocks/share/lua/5.3/dogma/syn/StmtParser.lua            586  0      100.00%
 /home/me/.luarocks/share/lua/5.3/dogma/syn/StmtType.lua              22   0      100.00%
 /home/me/.luarocks/share/lua/5.3/dogma/syn/TerminalType.lua          23   0      100.00%
 /home/me/.luarocks/share/lua/5.3/dogma/syn/UnpackParser.lua          71   0      100.00%
@@ -9035,9 +9085,9 @@ File                                                                 Hits Missed
 /home/me/.luarocks/share/lua/5.3/dogma/trans/js/Trans.lua            43   0      100.00%
 /home/me/.luarocks/share/lua/5.3/dogma/trans/js/_/DirectiveTrans.lua 27   0      100.00%
 /home/me/.luarocks/share/lua/5.3/dogma/trans/js/_/ExpTrans.lua       361  0      100.00%
-/home/me/.luarocks/share/lua/5.3/dogma/trans/js/_/StmtTrans.lua      555  0      100.00%
+/home/me/.luarocks/share/lua/5.3/dogma/trans/js/_/StmtTrans.lua      567  0      100.00%
 /home/me/.luarocks/share/lua/5.3/dogma/trans/js/_/SubTrans.lua       21   0      100.00%
 /home/me/.luarocks/share/lua/5.3/dogma/trans/js/_/UnpackTrans.lua    156  0      100.00%
 /home/me/.luarocks/share/lua/5.3/dogma/trans/js/_/util.lua           24   0      100.00%
 -----------------------------------------------------------------------------------------
-Total                                                                4363 0      100.00%
+Total                                                                4392 0      100.00%

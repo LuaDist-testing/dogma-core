@@ -626,7 +626,7 @@ end
 --
 --@return string
 function StmtTrans:_transParamsCheck(params)
-  local function toJs(obj)
+  local function transType(obj)
     local repr
 
     repr = "{"
@@ -634,7 +634,7 @@ function StmtTrans:_transParamsCheck(params)
       repr = repr .. (ix == 1 and "" or ", ") .. string.format(
         "%s: {type: %s, mandatory: %s}",
         val.name,
-        val.type,
+        type(val.type) == "string" and val.type or string.format("[%s]", table.concat(val.type, ", ")),
         val.mandatory
       )
     end
@@ -652,12 +652,21 @@ function StmtTrans:_transParamsCheck(params)
     for _, p in ipairs(params) do
       if not p.optional and p.modifier ~= "..." then  --mandatory parameter with(out) type check
         if type(p.type) == "table" then
-          code = code .. string.format(
-            [[dogma.paramExpectedToHave("%s", %s, %s);]],
-            transName(p.name),
-            transName(p.name),
-            toJs(p.type)
-          )
+          if type(p.type[1]) == "string" then
+            code = code .. string.format(
+              [[dogma.paramExpected("%s", %s, [%s]);]],
+              transName(p.name),
+              transName(p.name),
+              table.concat(p.type, ", ")
+            )
+          else
+            code = code .. string.format(
+              [[dogma.paramExpectedToHave("%s", %s, %s);]],
+              transName(p.name),
+              transName(p.name),
+              transType(p.type)
+            )
+          end
         else
           code = code .. string.format(
             [[dogma.paramExpected("%s", %s, %s);]],
@@ -668,12 +677,21 @@ function StmtTrans:_transParamsCheck(params)
         end
       elseif p.type then  --optional parameter with type check
         if type(p.type) == "table" then
-          code = code .. string.format(
-            [[dogma.paramExpectedToHave("%s", %s, %s);]],
-            transName(p.name),
-            transName(p.name),
-            toJs(p.type)
-          )
+          if type(p.type[1]) == "string" then
+            code = code .. string.format(
+              [[dogma.paramExpectedToBe("%s", %s, [%s]);]],
+              transName(p.name),
+              transName(p.name),
+              table.concat(p.type, ", ")
+            )
+          else
+            code = code .. string.format(
+              [[dogma.paramExpectedToHave("%s", %s, %s);]],
+              transName(p.name),
+              transName(p.name),
+              transType(p.type)
+            )
+          end
         else
           code = code .. string.format(
             [[dogma.paramExpectedToBe("%s", %s, %s);]],

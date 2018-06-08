@@ -797,7 +797,23 @@ function StmtParser:_readFnParamType()
   lex:next(TokenType.SYMBOL, ":")
 
   tok = lex:advance()
-  if not (tok.type == TokenType.SYMBOL and tok.value == "{") then
+  if tok.type == TokenType.SYMBOL and tok.value == "(" then
+    lex:nextSymbol("(")
+
+    dtype = {}
+    while true do
+      table.insert(dtype, lex:nextName().value)
+
+      tok = lex:advance()
+      if not (tok.type == TokenType.SYMBOL and tok.value == ",") then
+        break
+      end
+
+      lex:nextSymbol(",")
+    end
+
+    lex:nextSymbol(")")
+  elseif not (tok.type == TokenType.SYMBOL and tok.value == "{") then
     dtype = lex:next(TokenType.NAME).value
   else
     lex:next()
@@ -810,29 +826,45 @@ function StmtParser:_readFnParamType()
     else
       while true do
         --read field
-        local pname, ptype, pman
+        local pname, ptype, pman, readType
 
         --name
         pname = lex:next(TokenType.NAME).value
 
-        --?:type
+        --?:
         tok = lex:advance()
 
         if tok.type == TokenType.SYMBOL and tok.value == "?" then
-          lex:next(TokenType.SYMBOL, "?")
-          lex:next(TokenType.SYMBOL, ":")
-          ptype = lex:next(TokenType.NAME).value
+          lex:nextSymbol("?")
           pman = false
+          readType = true
         else
           pman = true
-
           tok = lex:advance()
-          if tok.type == TokenType.SYMBOL and tok.value == ":" then
-            lex:next()
-            ptype = lex:next(TokenType.NAME).value
+          readType = (tok.type == TokenType.SYMBOL and tok.value == ":")
+        end
+
+        --type
+        if readType then
+          lex:nextSymbol(":")
+          tok = lex:advance()
+          if tok.type == TokenType.SYMBOL and tok.value == "(" then
+            ptype = {}
+            lex:nextSymbol("(")
+            while true do
+              table.insert(ptype, lex:nextName().value)
+              tok = lex:advance()
+              if not (tok.type == TokenType.SYMBOL and tok.value == ",") then
+                break
+              end
+              lex:nextSymbol(",")
+            end
+            lex:nextSymbol(")")
           else
-            ptype = "any"
+            ptype = lex:nextName().value
           end
+        else
+          ptype = "any"
         end
 
         table.insert(dtype, {name = pname, type = ptype, mandatory = pman})

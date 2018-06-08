@@ -1518,6 +1518,60 @@ return suite("dogma.syn.StmtParser", function()
         })
       end)
 
+      test("fn Name(Name : {Name : (Name)})", function()
+        parser:parse("fn myfn(p:{x:(text)})")
+        stmt = parser:next()
+        assert(stmt):isTable():has({
+          line = 1,
+          col = 1,
+          annots = {},
+          visib = nil,
+          itype = nil,
+          name = "myfn",
+          accessor = nil,
+          rtype = nil,
+          rvar = nil,
+          body = {}
+        })
+        assert(stmt.params):len(1)
+        assert(stmt.params[1]):has({
+          const = false,
+          modifier = nil,
+          name = "p",
+          optional = false,
+          type = {
+            {name = "x", type = {"text"}, mandatory = true}
+          }
+        })
+      end):tags("1x2")
+
+      test("fn Name(Name : {Name : (Name, Name)})", function()
+        parser:parse("fn myfn(p:{x:(text,list)})")
+        stmt = parser:next()
+        assert(stmt):isTable():has({
+          line = 1,
+          col = 1,
+          annots = {},
+          visib = nil,
+          itype = nil,
+          name = "myfn",
+          accessor = nil,
+          rtype = nil,
+          rvar = nil,
+          body = {}
+        })
+        assert(stmt.params):len(1)
+        assert(stmt.params[1]):has({
+          const = false,
+          modifier = nil,
+          name = "p",
+          optional = false,
+          type = {
+            {name = "x", type = {"text", "list"}, mandatory = true}
+          }
+        })
+      end):tags("1x2")
+
       test("fn Name(Name : {Name ? : Name})", function()
         parser:parse("fn myfn(p:{x?:num})")
         stmt = parser:next()
@@ -1569,6 +1623,84 @@ return suite("dogma.syn.StmtParser", function()
           type = {
             {name = "x", type = "any", mandatory = true},
             {name = "y", type = "text", mandatory = false}
+          }
+        })
+      end)
+
+      test("fn Name (Name : (Name))", function()
+        parser:parse("fn myfn(p:(text))")
+        stmt = parser:next()
+        assert(stmt):isTable():has({
+          line = 1,
+          col = 1,
+          annots = {},
+          visib = nil,
+          itype = nil,
+          name = "myfn",
+          accessor = nil,
+          rtype = nil,
+          rvar = nil,
+          body = {},
+          params = {
+            {
+              const = false,
+              modifier = nil,
+              name = "p",
+              optional = false,
+              type = {"text"}
+            }
+          }
+        })
+      end)
+
+      test("fn Name (Name : (Name, Name))", function()
+        parser:parse("fn myfn(p:(text,list))")
+        stmt = parser:next()
+        assert(stmt):isTable():has({
+          line = 1,
+          col = 1,
+          annots = {},
+          visib = nil,
+          itype = nil,
+          name = "myfn",
+          accessor = nil,
+          rtype = nil,
+          rvar = nil,
+          body = {},
+          params = {
+            {
+              const = false,
+              modifier = nil,
+              name = "p",
+              optional = false,
+              type = {"text", "list"}
+            }
+          }
+        })
+      end)
+
+      test("fn Name (Name ?: (Name, Name))", function()
+        parser:parse("fn myfn(p?:(text,list))")
+        stmt = parser:next()
+        assert(stmt):isTable():has({
+          line = 1,
+          col = 1,
+          annots = {},
+          visib = nil,
+          itype = nil,
+          name = "myfn",
+          accessor = nil,
+          rtype = nil,
+          rvar = nil,
+          body = {},
+          params = {
+            {
+              const = false,
+              modifier = nil,
+              name = "p",
+              optional = true,
+              type = {"text", "list"}
+            }
           }
         })
       end)
