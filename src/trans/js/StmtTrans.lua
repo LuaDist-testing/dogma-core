@@ -857,13 +857,16 @@ function StmtTrans:_transPub(stmt)
   local code
 
   --(1) transform
-  code = "export {"
+  code = ""
 
-  for ix, item in ipairs(stmt.items) do
-    code = code .. (ix > 1 and ", " or "") .. item
+  for _, item in ipairs(stmt.items) do
+    if item.type == "pub" then
+      code = code .. string.format("export {%s};", item.value)
+    else
+      code = code .. self:_transUse({modules = {item.value}})
+      code = code .. string.format("export {%s};", item.value.name)
+    end
   end
-
-  code = code .. "};"
 
   --(2) return
   return code

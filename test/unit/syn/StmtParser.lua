@@ -168,7 +168,7 @@ return suite("dogma.syn.StmtParser", function()
       stmt = parser:next()
       assert(stmt):isTable():has({type = SentType.STMT, subtype = StmtType.USE})
       assert(stmt.modules):eq({
-        {type = false, name = "module", path = "module"}
+        {name = "module", path = "module"}
       })
     end)
 
@@ -177,7 +177,7 @@ return suite("dogma.syn.StmtParser", function()
       stmt = parser:next()
       assert(stmt):isTable():has({type = SentType.STMT, subtype = StmtType.USE})
       assert(stmt.modules):eq({
-        {type = false, name = "module", path = "module"}
+        {name = "module", path = "module"}
       })
     end)
 
@@ -193,26 +193,26 @@ return suite("dogma.syn.StmtParser", function()
       stmt = parser:next()
       assert(stmt):isTable():has({type = SentType.STMT, subtype = StmtType.USE})
       assert(stmt.modules):eq({
-        {type = false, name = "assert", path = "justo.assert"}
+        {name = "assert", path = "justo.assert"}
       })
-    end):tags("1x2")
+    end)
 
     test('use "redispark-connector-redis"', function()
       parser:parse('use "redispark-connector-redis"')
       stmt = parser:next()
       assert(stmt):isTable():has({type = SentType.STMT, subtype = StmtType.USE})
       assert(stmt.modules):eq({
-        {type = false, name = "redis", path = "redispark-connector-redis"}
+        {name = "redis", path = "redispark-connector-redis"}
       })
-    end):tags("1x2")
+    end)
 
     test("use LitealStr, LiteralStr", function()
       parser:parse('use "module1", "module2"')
       stmt = parser:next()
       assert(stmt):isTable():has({type = SentType.STMT, subtype = StmtType.USE})
       assert(stmt.modules):eq({
-        {type = false, name = "module1", path = "module1"},
-        {type = false, name = "module2", path = "module2"}
+        {name = "module1", path = "module1"},
+        {name = "module2", path = "module2"}
       })
     end)
 
@@ -221,8 +221,8 @@ return suite("dogma.syn.StmtParser", function()
       stmt = parser:next()
       assert(stmt):isTable():has({type = SentType.STMT, subtype = StmtType.USE})
       assert(stmt.modules):eq({
-        {type = false, name = "module1", path = "module1"},
-        {type = false, name = "module2", path = "module2"}
+        {name = "module1", path = "module1"},
+        {name = "module2", path = "module2"}
       })
     end)
 
@@ -231,7 +231,7 @@ return suite("dogma.syn.StmtParser", function()
       stmt = parser:next()
       assert(stmt):isTable():has({type = SentType.STMT, subtype = StmtType.USE})
       assert(stmt.modules):eq({
-        {type = false, name = "mod", path = "module"}
+        {name = "mod", path = "module"}
       })
     end)
 
@@ -240,7 +240,7 @@ return suite("dogma.syn.StmtParser", function()
       stmt = parser:next()
       assert(stmt):isTable():has({type = SentType.STMT, subtype = StmtType.USE})
       assert(stmt.modules):eq({
-        {type = false, name = "mod", path = "module"}
+        {name = "mod", path = "module"}
       })
     end)
 
@@ -249,8 +249,8 @@ return suite("dogma.syn.StmtParser", function()
       stmt = parser:next()
       assert(stmt):isTable():has({type = SentType.STMT, subtype = StmtType.USE})
       assert(stmt.modules):eq({
-        {type = false, name = "mod1", path = "module1"},
-        {type = false, name = "mod2", path = "module2"}
+        {name = "mod1", path = "module1"},
+        {name = "mod2", path = "module2"}
       })
     end)
 
@@ -259,8 +259,8 @@ return suite("dogma.syn.StmtParser", function()
       stmt = parser:next()
       assert(stmt):isTable():has({type = SentType.STMT, subtype = StmtType.USE})
       assert(stmt.modules):eq({
-        {type = false, name = "mod1", path = "module1"},
-        {type = false, name = "mod2", path = "module2"}
+        {name = "mod1", path = "module1"},
+        {name = "mod2", path = "module2"}
       })
     end)
 
@@ -279,27 +279,7 @@ return suite("dogma.syn.StmtParser", function()
       stmt = parser:next()
       assert(stmt):isTable():has({type = SentType.STMT, subtype = StmtType.USE})
       assert(stmt.modules):eq({
-        {type = false, name = "two", path = "one/two"}
-      })
-    end)
-
-    test("use type LiteralStr", function()
-      parser:parse([[use type "one/two"]])
-      stmt = parser:next()
-      assert(stmt):isTable():has({type = SentType.STMT, subtype = StmtType.USE})
-      assert(stmt.modules):eq({
-        {type = true, name = "two", path = "one/two"}
-      })
-    end)
-
-    test("use\\n type LiteralStr\\n type LiteralStr", function()
-      parser:parse('use\n type "one"\n "two"\n type "three"')
-      stmt = parser:next()
-      assert(stmt):isTable():has({type = SentType.STMT, subtype = StmtType.USE})
-      assert(stmt.modules):eq({
-        {type = true, name = "one", path = "one"},
-        {type = false, name = "two", path = "two"},
-        {type = true, name = "three", path = "three"}
+        {name = "two", path = "one/two"}
       })
     end)
   end):tags("use")
@@ -318,22 +298,7 @@ return suite("dogma.syn.StmtParser", function()
         col = 1,
         module = "fs",
         members = {
-          {type = false, name = "FSWatcher", as = "FSWatcher"}
-        }
-      })
-    end)
-
-    test("from LiteralStr use type Name", function()
-      parser:parse([[from "fs" use type FSWatcher]])
-      stmt = parser:next()
-      assert(stmt):isTable():has({
-        type = SentType.STMT,
-        subtype = StmtType.FROM,
-        line = 1,
-        col = 1,
-        module = "fs",
-        members = {
-          {type = true, name = "FSWatcher", as = "FSWatcher"}
+          {name = "FSWatcher", as = "FSWatcher"}
         }
       })
     end)
@@ -348,7 +313,7 @@ return suite("dogma.syn.StmtParser", function()
         col = 1,
         module = "fs",
         members = {
-          {type = false, name = "FSWatcher", as = "Watcher"}
+          {name = "FSWatcher", as = "Watcher"}
         }
       })
     end)
@@ -363,25 +328,8 @@ return suite("dogma.syn.StmtParser", function()
         col = 1,
         module = "fs",
         members = {
-          {type = false, name = "FSWatcher", as = "FSWatcher"},
-          {type = false, name = "watch", as = "watch"}
-        }
-      })
-    end)
-
-    test("from LiteralStr use type Name, Name, type Name", function()
-      parser:parse([[from "fs" use type FSWatcher, watch, type Other]])
-      stmt = parser:next()
-      assert(stmt):isTable():has({
-        type = SentType.STMT,
-        subtype = StmtType.FROM,
-        line = 1,
-        col = 1,
-        module = "fs",
-        members = {
-          {type = true, name = "FSWatcher", as = "FSWatcher"},
-          {type = false, name = "watch", as = "watch"},
-          {type = true, name = "Other", as = "Other"}
+          {name = "FSWatcher", as = "FSWatcher"},
+          {name = "watch", as = "watch"}
         }
       })
     end)
@@ -396,8 +344,8 @@ return suite("dogma.syn.StmtParser", function()
         col = 1,
         module = "fs",
         members = {
-          {type = false, name = "FSWatcher", as = "Watcher"},
-          {type = false, name = "watch", as = "wtch"}
+          {name = "FSWatcher", as = "Watcher"},
+          {name = "watch", as = "wtch"}
         }
       })
     end)
@@ -2544,7 +2492,7 @@ return suite("dogma.syn.StmtParser", function()
   suite("nextPub()", function()
     test("pub", function()
       parser:parse("pub")
-      assert(function() parser:next() end):raises("name expected on (1, 4).")
+      assert(function() parser:next() end):raises("on (1,4), literal text or name expected.")
     end)
 
     test("pub Name", function()
@@ -2554,18 +2502,29 @@ return suite("dogma.syn.StmtParser", function()
         line = 1,
         col = 1,
         subtype = StmtType.PUB,
-        items = {"Item"}
+        items = {{type = "pub", value = "Item"}}
       })
     end)
 
-    test("pub Name, Name", function()
-      parser:parse("pub Item1, Item2")
+    test("pub Text", function()
+      parser:parse('pub "Item"')
       stmt = parser:next()
       assert(stmt):isTable():has({
         line = 1,
         col = 1,
         subtype = StmtType.PUB,
-        items = {"Item1", "Item2"}
+        items = {{type = "use", value = {path = "Item", name = "Item"}}}
+      })
+    end)
+
+    test("pub Name, Text", function()
+      parser:parse('pub Item1, "Item2"')
+      stmt = parser:next()
+      assert(stmt):isTable():has({
+        line = 1,
+        col = 1,
+        subtype = StmtType.PUB,
+        items = {{type = "pub", value = "Item1"}, {type = "use", value = {path = "Item2", name = "Item2"}}}
       })
     end)
 

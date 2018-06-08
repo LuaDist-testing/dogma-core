@@ -703,9 +703,14 @@ const Coord2D = new Proxy($Coord2D, { apply(receiver, self, args) { return new $
       assert(trans:next()):eq("export {Item};\n")
     end)
 
-    test("pub Item, Item", function()
-      parser:parse("pub Item1, Item2")
-      assert(trans:next()):eq("export {Item1, Item2};\n")
+    test('pub "./Item"', function()
+      parser:parse('pub "./Item"')
+      assert(trans:next()):eq('import Item from "./Item";export {Item};\n')
+    end)
+
+    test('pub Item, "./Item"', function()
+      parser:parse('pub Item1, "./Item2"')
+      assert(trans:next()):eq('export {Item1};import Item2 from "./Item2";export {Item2};\n')
     end)
   end):tags("pub")
 

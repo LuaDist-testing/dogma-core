@@ -8,7 +8,6 @@ local SentType = require("dogma.syn.SentType")
 
 --internal data
 local PRE = [[
-//imports
 import {any, bool, func, list, map, num, promise, proxy, text, abstract, dogma, exec, keys, len, print, printf, todo, typename} from "dogmalang";
 ]]
 

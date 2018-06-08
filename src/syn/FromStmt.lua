@@ -23,9 +23,8 @@ end
 
 --Insert an imported member.
 --
---@param type:bool    Is a type?
 --@param name:string  Member name to import.
 --@param as?:string   Name to use in the code.
-function FromStmt:insert(type, name, as)
-  table.insert(self.members, {type = type, name = name, as = as or name})
+function FromStmt:insert(name, as)
+  table.insert(self.members, {name = name, as = as or name})
 end

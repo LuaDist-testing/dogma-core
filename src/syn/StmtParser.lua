@@ -207,22 +207,12 @@ function StmtParser:nextUse()
 
   --(3) get variables
   while true do
-    local type, path, name
+    local path, name
 
     tok = lex:advance()
 
     if tok == nil or (sep == "\n" and tok.col <= stmt.col) then
       break
-    end
-
-    --type?
-    tok = lex:advance()
-
-    if tok.type == TokenType.KEYWORD and tok.value == "type" then
-      lex:next()
-      type = true
-    else
-      type = false
     end
 
     --path
@@ -237,7 +227,7 @@ function StmtParser:nextUse()
     end
 
     --insert
-    stmt:insert(type, path, name)
+    stmt:insert(path, name)
 
     --read separator
     if sep == "\n" then
@@ -279,17 +269,9 @@ function StmtParser:nextFrom()
   lex:next(TokenType.KEYWORD, "use")
 
   while true do
-    local typ, name, as
+    local name, as
 
     --(1) item
-    tok = lex:advance()
-    if tok.type == TokenType.KEYWORD and tok.value == "type" then
-      typ = true
-      lex:next()
-    else
-      typ = false
-    end
-
     name = lex:next(TokenType.NAME).value
 
     tok = lex:advance()
@@ -298,7 +280,7 @@ function StmtParser:nextFrom()
       as = lex:next(TokenType.NAME).value
     end
 
-    stmt:insert(typ, name, as)
+    stmt:insert(name, as)
 
     --(2) end?
     tok = lex:advance()
@@ -1227,9 +1209,22 @@ function StmtParser:nextPub()
   items = {}
 
   while true do
-    table.insert(items, lex:next(TokenType.NAME).value)
+    --item
+    tok = lex:advance()
 
+    if tok and tok.type == TokenType.LITERAL and type(tok.value) == "string" then
+      lex:next()
+      table.insert(items, {type = "use", value = tok.value})
+    elseif tok and tok.type == TokenType.NAME then
+      lex:next()
+      table.insert(items, {type = "pub", value = tok.value})
+    else
+      error(string.format("on (%s,%s), literal text or name expected.", tok.line, tok.col))
+    end
+
+    --end or next?
     tok = lex:next()
+
     if tok.type == TokenType.EOL then
       break
     else
