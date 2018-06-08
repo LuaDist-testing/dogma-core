@@ -330,6 +330,16 @@ return suite("dogma.lex.Lexer", function()
       assert(lexer:next()):isNil()
     end)
 
+    test("_scanId() - being keyword preceded by ?", function()
+      lexer:scan("x?then")
+
+      assert(lexer:next()):isTable():has({type = TokenType.NAME, line = 1, col = 1, value = "x"})
+      assert(lexer:next()):isTable():has({type = TokenType.SYMBOL, line = 1, col = 2, value = "?"})
+      assert(lexer:next()):isTable():has({type = TokenType.NAME, line = 1, col = 3, value = "then"})
+      assert(lexer:next()):isTable():has({type = TokenType.EOL, line = 1, col = 7})
+      assert(lexer:next()):isNil()
+    end)
+
     test("_scanId() - being keyword preceded by : using advanced token", function()
       lexer:scan(":then")
 

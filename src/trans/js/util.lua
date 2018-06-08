@@ -7,7 +7,7 @@ package.loaded[...] = {
       "abstract", "await",
       "break",
       "case", "char", "class", "const", "continue",
-      "debugger", "default", "do",
+      "debugger", "do",
       "else", "enum", "export", "extends",
       "final", "finally", "for", "function",
       "goto",

@@ -76,8 +76,8 @@ return suite("dogma.syn.StmtParser", function()
       assert(stmt.vars[3].value:__tostring()):eq("9")
     end)
 
-    test("const x = 12 ? y = 34", function()
-      parser:parse("const x = 12 ? y = 34")
+    test("const x = 12 ; y = 34", function()
+      parser:parse("const x = 12 ; y = 34")
       assert(function() parser:next() end):raises("comma expected on (1, 14) for separating variables.")
     end)
 
@@ -282,6 +282,21 @@ return suite("dogma.syn.StmtParser", function()
         {name = "two", path = "one/two"}
       })
     end)
+
+    test("use Literal, Name", function()
+      parser:parse('use "one", two')
+      stmt = parser:next()
+      assert(stmt):isTable():has({type = SentType.STMT, subtype = StmtType.USE})
+      assert(stmt.modules):eq({
+        {name = "one", path = "one"},
+        {name = "two", path = "./two"}
+      })
+    end)
+
+    test("use Number - error", function()
+      parser:parse("use 123")
+      assert(function() parser:next() end):raises("on (1,5), literal string or name expected.")
+    end)
   end):tags("use")
 
   ----------------
@@ -401,8 +416,8 @@ return suite("dogma.syn.StmtParser", function()
       assert(stmt.vars[3].value:__tostring()):eq("(* 56 78)")
     end)
 
-    test("var x = 12 ? y", function()
-      parser:parse("var x = 12 ? y")
+    test("var x = 12 ; y", function()
+      parser:parse("var x = 12 ; y")
       assert(function() parser:next() end):raises("comma expected on (1, 12) for separating variables.")
     end)
 

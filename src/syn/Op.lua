@@ -35,6 +35,7 @@ function Op:getDesc()
 
     ["b ."] = {assoc = "l", prec = 19},
     ["b :"] = {assoc = "l", prec = 19},
+    ["b ?"] = {assoc = "l", prec = 19},
     ["b []"] = {assoc = "l", prec = 19},  --index
     ["t []"] = {assoc = "l", prec = 19},  --index
     ["n ()"] = {assoc = "l", prec = 19},  --call

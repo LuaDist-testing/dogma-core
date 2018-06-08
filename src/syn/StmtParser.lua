@@ -216,14 +216,23 @@ function StmtParser:nextUse()
     end
 
     --path
-    path = lex:next(TokenType.LITERAL).value
+    tok = lex:next()
 
-    --as
-    tok = lex:advance()
+    if tok.type == TokenType.LITERAL and type(tok.value) == "string" then
+      path = tok.value
 
-    if tok.type == TokenType.KEYWORD and tok.value == "as" then
-      lex:next()  --as
-      name = lex:next(TokenType.NAME).value
+      --as
+      tok = lex:advance()
+
+      if tok.type == TokenType.KEYWORD and tok.value == "as" then
+        lex:next()  --as
+        name = lex:next(TokenType.NAME).value
+      end
+    elseif tok.type == TokenType.NAME then
+      path = "./" .. tok.value
+      name = tok.value
+    else
+      error(string.format("on (%s,%s), literal string or name expected.", tok.line, tok.col))
     end
 
     --insert
@@ -778,7 +787,7 @@ function StmtParser:nextFn(annots)
 
   --(3) read parameters, return type and return variable
   params = self:_readFnParams()
-  
+
   if not async then
     rvar = self:_readFnReturnVar()
     rtype = self:_readFnType()

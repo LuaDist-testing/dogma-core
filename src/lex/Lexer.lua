@@ -447,7 +447,7 @@ function Lexer:_scanId()
   --(2) return
   local last = self:_getLastReadToken()
 
-  if (last and last.type == TokenType.SYMBOL and (last.value == "." or last.value == ":")) or
+  if (last and last.type == TokenType.SYMBOL and (last.value == "." or last.value == ":" or last.value == "?")) or
      not Keyword.isKeyword(id) then
     return Name.new(ln, col, id)
   else

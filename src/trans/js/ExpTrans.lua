@@ -244,6 +244,8 @@ function ExpTrans:_transBinOp(node)
     return "(" .. self:_transNode(left) .. "&&" .. self:_transNode(right) .. ")"
   elseif node.op == "or" then
     return "(" .. self:_transNode(left) .. "||" .. self:_transNode(right) .. ")"
+  elseif node.op == "?" then
+    return string.format("(%s != null ? %s.%s : null)", self:_transNode(left), self:_transNode(left), self:_transNode(right))
   elseif node.op == "." then
     return self:_transNode(left) .. "." .. self:_transNode(right)
   elseif node.op == ":" then

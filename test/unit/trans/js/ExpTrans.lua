@@ -34,8 +34,8 @@ return suite("dogma.trans.js._.ExpTrans", function()
       end)
 
       test("keyword", function()
-        parser:parse("default")
-        assert(trans:next()):eq("default_;\n")
+        parser:parse("class")
+        assert(trans:next()):eq("class_;\n")
       end)
     end)
 
@@ -366,6 +366,11 @@ return suite("dogma.trans.js._.ExpTrans", function()
           parser:parse("x.y=z")
           assert(trans:next()):eq("(x.y=z);\n")
         end)
+      end)
+
+      test("?", function()
+        parser:parse("x?y")
+        assert(trans:next()):eq("(x != null ? x.y : null);\n")
       end)
 
       suite(":", function()

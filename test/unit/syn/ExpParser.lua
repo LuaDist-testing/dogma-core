@@ -471,6 +471,11 @@ return suite("dogma.syn.ExpParser", function()
       assert(tostring(parser:next())):eq("(+= x 123)")
     end)
 
+    test("?", function()
+      parser:parse("x?y")
+      assert(tostring(parser:next())):eq("(? x y)")
+    end)
+
     suite(".", function()
       test("x.y", function()
         parser:parse("x.y")

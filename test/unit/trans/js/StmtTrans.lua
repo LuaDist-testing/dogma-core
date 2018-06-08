@@ -475,8 +475,8 @@ const Coord2D = new Proxy($Coord2D, { apply(receiver, self, args) { return new $
   suite("fn", function()
     suite("params", function()
       test("fn func(keyword)", function()
-        parser:parse("fn sum(x, default) = x + default")
-        assert(trans:next()):eq('function sum(x, default_) { dogma.paramExpected("x", x, null);dogma.paramExpected("default_", default_, null);{return (x+default_);} }\n')
+        parser:parse("fn sum(x, class) = x + class")
+        assert(trans:next()):eq('function sum(x, class_) { dogma.paramExpected("x", x, null);dogma.paramExpected("class_", class_, null);{return (x+class_);} }\n')
       end)
 
       test("fn Name(Name)", function()
