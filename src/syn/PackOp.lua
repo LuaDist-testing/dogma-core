@@ -24,7 +24,7 @@ function PackOp.new(tok)
 end
 
 --@override
-function NaryOp:__tostring()
+function PackOp:__tostring()
   local ops
 
   --(1) get expressions
@@ -33,6 +33,10 @@ function NaryOp:__tostring()
       ops = op:__tostring()
     else
       ops = ops .. " " .. op.visib .. op.name
+
+      if op.value then
+        ops = ops .. "=" .. tostring(op.value)
+      end
     end
   end
 

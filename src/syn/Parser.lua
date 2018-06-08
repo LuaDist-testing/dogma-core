@@ -40,7 +40,7 @@ end
 --
 --@return Sentence
 function Parser:next()
-  local lex, stmter, unpacker, direr = self._.lexer, self._.stmtParser, self._.unpackParser, self._.directiveParser
+  local lex, stmter, direr = self._.lexer, self._.stmtParser, self._.directiveParser
   local sent, tok, annots
 
   --(1) remove white lines and read annotations
@@ -83,13 +83,7 @@ function Parser:next()
       elseif tok.value == "break" then
         sent = stmter:nextBreak()
       elseif tok.value == "const" then
-        tok = lex:advance(2)
-
-        if tok.type == TokenType.SYMBOL and (tok.value == "{" or tok.value == "[") then
-          sent = self._.unpackParser:next()
-        else
-          sent = stmter:nextConst()
-        end
+        sent = stmter:nextConst()
       elseif tok.value == "do" then
         sent = stmter:nextDo()
       elseif tok.value == "enum" then
@@ -101,13 +95,7 @@ function Parser:next()
 
         if tok.type == TokenType.KEYWORD then
           if tok.value == "const" then
-            tok = lex:advance(3)
-
-            if tok.type == TokenType.SYMBOL and (tok.value == "{" or tok.value == "[") then
-              sent = unpacker:next()
-            else
-              sent = stmter:nextConst()
-            end
+            sent = stmter:nextConst()
           elseif tok.value == "enum" then
             sent = stmter:nextEnum(annots)
           elseif tok.value == "fn" or tok.value == "async" then
@@ -115,13 +103,7 @@ function Parser:next()
           elseif tok.value == "type" then
             sent = stmter:nextType(annots)
           elseif tok.value == "var" then
-            tok = lex:advance(3)
-
-            if tok.type == TokenType.SYMBOL and (tok.value == "{" or tok.value == "[") then
-              sent = unpacker:next()
-            else
-              sent = stmter:nextVar()
-            end
+            sent = stmter:nextVar()
           end
         end
 
@@ -153,19 +135,19 @@ function Parser:next()
       elseif tok.value == "type" then
         sent = stmter:nextType(annots)
       elseif tok.value == "use" then
-        sent = stmter:nextUse()
-      elseif tok.value == "var" then
         tok = lex:advance(2)
 
-        if tok.type == TokenType.SYMBOL and (tok.value == "{" or tok.value == "[") then
-          sent = self._.unpackParser:next()
-        else
-          sent = stmter:nextVar()
+        if not (tok.type == TokenType.SYMBOL and tok.value == "(") then
+          sent = stmter:nextUse()
         end
+      elseif tok.value == "var" then
+        sent = stmter:nextVar()
       elseif tok.value == "while" then
         sent = stmter:nextWhile()
       elseif tok.value == "with" then
         sent = stmter:nextWith()
+      elseif tok.value == "yield" then
+        sent = stmter:nextYield()
       end
     end
 

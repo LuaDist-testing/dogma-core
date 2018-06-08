@@ -16,5 +16,8 @@ return {
   THROW = 15,
   NOP = 16,
   NATIVE = 17,
-  AWAIT = 18
+  AWAIT = 18,
+  PAWAIT = 19,
+  USE = 20,
+  IIF = 21
 }

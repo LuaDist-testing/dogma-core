@@ -22,6 +22,7 @@ catalog:macro("test", {
   {title = "DirectiveParser", task = "./test/unit/syn/DirectiveParser"},
   {title = "ExpParser", task = "./test/unit/syn/ExpParser"},
   {title = "StmtParser", task = "./test/unit/syn/StmtParser"},
+  {title = "VarStmtParser", task = "./test/unit/syn/VarStmtParser"},
   {title = "UnpackParser", task = "./test/unit/syn/UnpackParser"},
   {title = "NonTerminal", task = "./test/unit/syn/NonTerminal"},
   {title = "CallOp", task = "./test/unit/syn/CallOp"},

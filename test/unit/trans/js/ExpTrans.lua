@@ -60,10 +60,18 @@ return suite("dogma.trans.js._.ExpTrans", function()
       assert(trans:next()):eq("null;\n")
     end)
 
-    test([["text"]], function()
-      parser:parse([["text"]])
-      assert(trans:next()):eq('"text";\n')
+    suite("text", function()
+      test('"text"', function()
+        parser:parse('"text"')
+        assert(trans:next()):eq('"text";\n')
+      end)
+
+      test('"text" - with new lines', function()
+        parser:parse('"text1\ntext2"')
+        assert(trans:next()):eq('"text1\\ntext2";\n')
+      end)
     end)
+
 
     test("self", function()
       parser:parse("self")
@@ -117,37 +125,37 @@ return suite("dogma.trans.js._.ExpTrans", function()
     suite("fn", function()
       test("fn() end", function()
         parser:parse("a + fn() end")
-        assert(trans:next()):eq("(a+() => { {} });\n")
+        assert(trans:next()):eq("(a+(() => { {} }));\n")
       end)
 
       test("fn(Name) end", function()
         parser:parse("a + fn(x) end")
-        assert(trans:next()):eq('(a+(x) => { dogma.paramExpected("x", x, null);{} });\n')
+        assert(trans:next()):eq('(a+((x) => { dogma.paramExpected("x", x, null);{} }));\n')
       end)
 
       test("fn(Name) -> Name end", function()
         parser:parse("a + fn(x) -> x end")
-        assert(trans:next()):eq('(a+(x) => { dogma.paramExpected("x", x, null);{} return x; });\n')
+        assert(trans:next()):eq('(a+((x) => { dogma.paramExpected("x", x, null);{} return x; }));\n')
       end)
 
       test("fn(Name?) end", function()
         parser:parse("a + fn(x?) end")
-        assert(trans:next()):eq("(a+(x) => { {} });\n")
+        assert(trans:next()):eq("(a+((x) => { {} }));\n")
       end)
 
       test("fn(Name : num) end", function()
         parser:parse("a + fn(x:num) end")
-        assert(trans:next()):eq('(a+(x) => { dogma.paramExpected("x", x, num);{} });\n')
+        assert(trans:next()):eq('(a+((x) => { dogma.paramExpected("x", x, num);{} }));\n')
       end)
 
       test("fn(Name ? : num) end", function()
         parser:parse("a + fn(x?:num) end")
-        assert(trans:next()):eq('(a+(x) => { dogma.paramExpectedToBe("x", x, num);{} });\n')
+        assert(trans:next()):eq('(a+((x) => { dogma.paramExpectedToBe("x", x, num);{} }));\n')
       end)
 
       test("fn(Name, Name) = Exp end", function()
         parser:parse("a + fn(x, y) = x - y end")
-        assert(trans:next()):eq('(a+(x, y) => { dogma.paramExpected("x", x, null);dogma.paramExpected("y", y, null);{return (x-y);} });\n')
+        assert(trans:next()):eq('(a+((x, y) => { dogma.paramExpected("x", x, null);dogma.paramExpected("y", y, null);{return (x-y);} }));\n')
       end)
     end)
 
@@ -161,10 +169,32 @@ return suite("dogma.trans.js._.ExpTrans", function()
       assert(trans:next()):eq("(x=await((1+2)));\n")
     end):tags("await")
 
+    test("pawait(Exp)", function()
+      parser:parse("l = pawait(setTimeout(done, 750, 750))")
+      assert(trans:next()):eq("(l=dogma.pawait((done) => {setTimeout(done, 750, 750);}));\n")
+    end):tags("pawait")
+
+    test("use(Exp)", function()
+      parser:parse('l = use("path")')
+      assert(trans:next()):eq('(l=dogma.use(require("path")));\n')
+    end):tags("use")
+
     test("peval(Exp)", function()
       parser:parse("x = peval(1+2)")
       assert(trans:next()):eq("(x=dogma.peval(() => {return (1+2);}));\n")
     end)
+
+    suite("iif()", function()
+      test("iif(Exp, Exp)", function()
+        parser:parse("iif(123+456, abc+def)")
+        assert(trans:next()):eq("((123+456) ? (abc+def) : null);\n")
+      end)
+
+      test("iif(Exp, Exp, Exp)", function()
+        parser:parse("iif(123+456, abc+def, 135+246)")
+        assert(trans:next()):eq("((123+456) ? (abc+def) : (135+246));\n")
+      end)
+    end):tags("iif")
 
     suite("throw", function()
       test("throw(Exp)", function()
@@ -188,6 +218,11 @@ return suite("dogma.trans.js._.ExpTrans", function()
         parser:parse([[(if x then x+1 else x+2 end) + 3]])
         assert(trans:next()):eq("((x ? (x+1) : (x+2))+3);\n")
       end)
+
+      test("if..then..end", function()
+        parser:parse([[(if x then x+1 end) + 3]])
+        assert(trans:next()):eq("((x ? (x+1) : null)+3);\n")
+      end)
     end)
   end)
 
@@ -199,6 +234,16 @@ return suite("dogma.trans.js._.ExpTrans", function()
     -- unary op --
     --------------
     suite("unary op", function()
+      test("<<<", function()
+        parser:parse("<<<args")
+        assert(trans:next()):eq("dogma.lshift(args);\n")
+      end)
+
+      test(">>>", function()
+        parser:parse(">>>args")
+        assert(trans:next()):eq("dogma.rshift(args);\n")
+      end)
+
       test("...", function()
         parser:parse("...args")
         assert(trans:next()):eq("...(args);\n")
@@ -262,8 +307,6 @@ return suite("dogma.trans.js._.ExpTrans", function()
         {subtitle = "<=", params = "<="},
         {subtitle = ">", params = ">"},
         {subtitle = ">=", params = ">="},
-        {subtitle = "<<", params = "<<"},
-        {subtitle = ">>", params = ">>"},
         {subtitle = "=", params = "="},
         {subtitle = "+=", params = "+="},
         {subtitle = "-=", params = "-="},
@@ -346,6 +389,16 @@ return suite("dogma.trans.js._.ExpTrans", function()
         end)
       end)
 
+      test(">>>", function()
+        parser:parse("x >>> y")
+        assert(trans:next()):eq("dogma.rshift(x, y);\n")
+      end)
+
+      test("<<<", function()
+        parser:parse("x <<< y")
+        assert(trans:next()):eq("dogma.lshift(x, y);\n")
+      end)
+
       test("and", function()
         parser:parse("x and y")
         assert(trans:next()):eq("(x&&y);\n")
@@ -362,6 +415,11 @@ return suite("dogma.trans.js._.ExpTrans", function()
           assert(trans:next()):eq("x.y;\n")
         end)
 
+        test("super.method()", function()
+          parser:parse("super.m()")
+          assert(trans:next()):eq('dogma.super(this, "m")();\n')
+        end)
+
         test("write", function()
           parser:parse("x.y=z")
           assert(trans:next()):eq("(x.y=z);\n")
@@ -374,6 +432,11 @@ return suite("dogma.trans.js._.ExpTrans", function()
       end)
 
       suite(":", function()
+        test("super:method()", function()
+          parser:parse("super:m()")
+          assert(trans:next()):eq('dogma.super(this, "_m")();\n')
+        end)
+
         test("x:y", function()
           parser:parse("x:y")
           assert(trans:next()):eq("x._y;\n")
@@ -430,12 +493,12 @@ return suite("dogma.trans.js._.ExpTrans", function()
       suite("in", function()
         test("in", function()
           parser:parse("x in array")
-          assert(trans:next()):eq("(array).includes(x);\n")
+          assert(trans:next()):eq("dogma.includes(array, x);\n")
         end)
 
         test("not in", function()
           parser:parse("x not in array")
-          assert(trans:next()):eq("!(array).includes(x);\n")
+          assert(trans:next()):eq("!dogma.includes(array, x);\n")
         end)
       end)
 
@@ -475,6 +538,16 @@ return suite("dogma.trans.js._.ExpTrans", function()
       assert(trans:next()):eq("dogma.clone(x);\n")
     end)
 
+    test("pack{*,f1=val1}", function()
+      parser:parse("x{*,f1=1+2}")
+      assert(trans:next()):eq('dogma.clone(x, {"f1": (1+2)});\n')
+    end)
+
+    test("pack{*,f1=val1,f2=val2}", function()
+      parser:parse("x{*,f1=val1,f2=val2}")
+      assert(trans:next()):eq('dogma.clone(x, {"f1": val1, "f2": val2});\n')
+    end)
+
     test("pack{}", function()
       parser:parse("x{}")
       assert(trans:next()):eq("dogma.pack(x);\n")
@@ -485,11 +558,56 @@ return suite("dogma.trans.js._.ExpTrans", function()
       assert(trans:next()):eq('dogma.pack(x, "name");\n')
     end)
 
+    test("pack{name, name=value}", function()
+      parser:parse("x{f1,f2=val}")
+      assert(trans:next()):eq('dogma.pack(x, "f1", {name: "f2", value: val});\n')
+    end)
+
+    test("pack{name, name=value, name=value}", function()
+      parser:parse("x{f1,f2=123,f3=456}")
+      assert(trans:next()):eq('dogma.pack(x, "f1", {name: "f2", value: 123}, {name: "f3", value: 456});\n')
+    end)
+
     test("pack{name, .name, :name}", function()
       parser:parse("x{a,.b,:c}")
       assert(trans:next()):eq('dogma.pack(x, "a", "b", "_c");\n')
     end)
   end):tags("pack")
+
+  ------------
+  -- update --
+  ------------
+  suite("update", function()
+    test("update.{a}", function()
+      parser:parse("x.{a}")
+      assert(trans:next()):eq('dogma.update(x, {name: "a", visib: ".", assign: "=", value: a});\n')
+    end)
+
+    test("update:{a}", function()
+      parser:parse("x:{a}")
+      assert(trans:next()):eq('dogma.update(x, {name: "a", visib: ":", assign: "=", value: a});\n')
+    end)
+
+    test("update:{{a} = exp}", function()
+      parser:parse("x:{{a} = 1+2}")
+      assert(trans:next()):eq('dogma.update(x, {name: ["a"], visib: ":", assign: "=", value: (1+2), type: "mapped"});\n')
+    end)
+
+    test("update:{{a, b} = exp}", function()
+      parser:parse("x:{{a, b} = 1+2}")
+      assert(trans:next()):eq('dogma.update(x, {name: ["a", "b"], visib: ":", assign: "=", value: (1+2), type: "mapped"});\n')
+    end)
+
+    test("update:{(a, b) = exp}", function()
+      parser:parse("x:{(a, b) = 1+2}")
+      assert(trans:next()):eq('dogma.update(x, {name: ["a", "b"], visib: ":", assign: "=", value: (1+2), type: "extended"});\n')
+    end)
+
+    test("update.{a=exp, b:=exp, c?=exp, d.=exp}", function()
+      parser:parse("x.{a=1+2, b:=3+4, c?=5+6, d.=7+8}")
+      assert(trans:next()):eq('dogma.update(x, {name: "a", visib: ".", assign: "=", value: (1+2)}, {name: "b", visib: ".", assign: ":=", value: (3+4)}, {name: "c", visib: ".", assign: "?=", value: (5+6)}, {name: "d", visib: ".", assign: ".=", value: (7+8)});\n')
+    end)
+  end):tags("update")
 
   ----------
   -- misc --

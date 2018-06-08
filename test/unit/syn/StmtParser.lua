@@ -33,96 +33,6 @@ return suite("dogma.syn.StmtParser", function()
     end)
   end)
 
-  -----------------
-  -- nextConst() --
-  -----------------
-  suite("nextConst()", function()
-    test("const x - error - = expected", function()
-      parser:parse("const x")
-      assert(function() parser:next() end):raises("'=' expected on (1, 8).")
-    end)
-
-    test("visibility const x = 12", function(params)
-      parser:parse(params[1] .. " const x = 12")
-      stmt = parser:next()
-      assert(stmt):isTable():has({type = SentType.STMT, subtype = StmtType.CONST, visib = params[1]})
-      assert(stmt.vars):len(1)
-      assert(stmt.vars[1].name):eq("x")
-      assert(stmt.vars[1].value:__tostring()):eq("12")
-    end):iter(
-      {subtitle = " # export", params = "export"},
-      {subtitle = " # pub", params = "pub"}
-    )
-
-    test("const x = 12 + 34", function()
-      parser:parse("const x = 12 + 34")
-      stmt = parser:next()
-      assert(stmt):isTable():has({type = SentType.STMT, subtype = StmtType.CONST})
-      assert(stmt.vars):len(1)
-      assert(stmt.vars[1].name):eq("x")
-      assert(stmt.vars[1].value:__tostring()):eq("(+ 12 34)")
-    end)
-
-    test("const x = 12+34, y = 56 + 78, z = 9", function()
-      parser:parse("const x = 12+34, y = 56+78, z = 9")
-      stmt = parser:next()
-      assert(stmt):isTable():has({type = SentType.STMT, subtype = StmtType.CONST})
-      assert(stmt.vars):len(3)
-      assert(stmt.vars[1].name):eq("x")
-      assert(stmt.vars[1].value:__tostring()):eq("(+ 12 34)")
-      assert(stmt.vars[2].name):eq("y")
-      assert(stmt.vars[2].value:__tostring()):eq("(+ 56 78)")
-      assert(stmt.vars[3].name):eq("z")
-      assert(stmt.vars[3].value:__tostring()):eq("9")
-    end)
-
-    test("const x = 12 ; y = 34", function()
-      parser:parse("const x = 12 ; y = 34")
-      assert(function() parser:next() end):raises("comma expected on (1, 14) for separating variables.")
-    end)
-
-    test("const\\n  x = 12*34", function()
-      parser:parse("const\n  x = 12+34")
-      stmt = parser:next()
-      assert(stmt):isTable():has({type = SentType.STMT, subtype = StmtType.CONST})
-      assert(stmt.vars):len(1)
-      assert(stmt.vars[1].name):eq("x")
-      assert(stmt.vars[1].value:__tostring()):eq("(+ 12 34)")
-    end)
-
-    test("const\\n  x = 12+34\\n  y=56*78\\n  z = 9", function()
-      parser:parse("const\n  x = 12+34\n  y = 56*78\n  z = 9")
-      stmt = parser:next()
-      assert(stmt):isTable():has({type = SentType.STMT, subtype = StmtType.CONST})
-      assert(stmt.vars):len(3)
-      assert(stmt.vars[1].name):eq("x")
-      assert(stmt.vars[1].value:__tostring()):eq("(+ 12 34)")
-      assert(stmt.vars[2].name):eq("y")
-      assert(stmt.vars[2].value:__tostring()):eq("(* 56 78)")
-      assert(stmt.vars[3].name):eq("z")
-      assert(stmt.vars[3].value:__tostring()):eq("9")
-    end)
-
-    test("const\\nx = 12 + 34", function()
-      parser:parse("const\nx = 12 + 34")
-      stmt = parser:next()
-      assert(stmt):isTable():has({
-        type = SentType.STMT,
-        subtype = StmtType.CONST,
-        vars = {}
-      })
-    end)
-
-    test("const\\n  x = 12 + 34\\ny = 56 + 78", function()
-      parser:parse("const\n  x = 12 + 34\ny = 56 + 78")
-      stmt = parser:next()
-      assert(stmt):isTable():has({type = SentType.STMT, subtype = StmtType.CONST})
-      assert(stmt.vars):len(1)
-      assert(stmt.vars[1].name):eq("x")
-      assert(stmt.vars[1].value:__tostring()):eq("(+ 12 34)")
-    end)
-  end)
-
   ----------------
   -- nextNext() --
   ----------------
@@ -158,6 +68,18 @@ return suite("dogma.syn.StmtParser", function()
       assert(stmt.values[1]:__tostring()):eq("(+ x y)")
     end)
   end)
+
+  -----------------
+  -- nextYield() --
+  -----------------
+  suite("nextYield()", function()
+    test("yield x+y", function()
+      parser:parse("yield x+y")
+      stmt = parser:next()
+      assert(stmt):isTable():has({type = SentType.STMT, subtype = StmtType.YIELD})
+      assert(tostring(stmt.value)):eq("(+ x y)")
+    end)
+  end):tags("yield")
 
   ---------------
   -- nextUse() --
@@ -365,113 +287,6 @@ return suite("dogma.syn.StmtParser", function()
       })
     end)
   end):tags("from")
-
-  ---------------
-  -- nextVar() --
-  ---------------
-  suite("nextVar()", function()
-    test("var x", function()
-      parser:parse("var x")
-      stmt = parser:next()
-      assert(stmt):isTable():has({
-        type = SentType.STMT,
-        subtype = StmtType.VAR,
-        vars = {{name = "x", value = nil}}
-      })
-    end)
-
-    test("visibility var x", function(params)
-      parser:parse(params[1] .. " var x")
-      stmt = parser:next()
-      assert(stmt):isTable():has({
-        type = SentType.STMT,
-        subtype = StmtType.VAR,
-        visib = params[1],
-        vars = {{name = "x", value = nil}}
-      })
-    end):iter(
-      {subtitle = " # export", params = "export"},
-      {subtitle = " # pub", params = "pub"}
-    )
-
-    test("var x = 12 + 34", function()
-      parser:parse("var x = 12 + 34")
-      stmt = parser:next()
-      assert(stmt):isTable():has({type = SentType.STMT, subtype = StmtType.VAR})
-      assert(stmt.vars):len(1)
-      assert(stmt.vars[1].name):eq("x")
-      assert(stmt.vars[1].value:__tostring()):eq("(+ 12 34)")
-    end)
-
-    test("var x = 12+34, y, z = 56*78", function()
-      parser:parse("var x = 12+34, y, z = 56*78")
-      stmt = parser:next()
-      assert(stmt):isTable():has({type = SentType.STMT, subtype = StmtType.VAR})
-      assert(stmt.vars):len(3)
-      assert(stmt.vars[1].name):eq("x")
-      assert(stmt.vars[1].value:__tostring()):eq("(+ 12 34)")
-      assert(stmt.vars[2].name):eq("y")
-      assert(stmt.vars[2].value):isNil()
-      assert(stmt.vars[3].name):eq("z")
-      assert(stmt.vars[3].value:__tostring()):eq("(* 56 78)")
-    end)
-
-    test("var x = 12 ; y", function()
-      parser:parse("var x = 12 ; y")
-      assert(function() parser:next() end):raises("comma expected on (1, 12) for separating variables.")
-    end)
-
-    test("var\\n  x", function()
-      parser:parse("var\n  x")
-      stmt = parser:next()
-      assert(stmt):isTable():has({
-        type = SentType.STMT,
-        subtype = StmtType.VAR,
-        vars = {{name = "x", value = nil}}
-      })
-    end)
-
-    test("var\\n  x = 12*34", function()
-      parser:parse("var\n  x = 12+34")
-      stmt = parser:next()
-      assert(stmt):isTable():has({type = SentType.STMT, subtype = StmtType.VAR})
-      assert(stmt.vars):len(1)
-      assert(stmt.vars[1].name):eq("x")
-      assert(stmt.vars[1].value:__tostring()):eq("(+ 12 34)")
-    end)
-
-    test("var\\n  x = 12+34\\n  y\\n  z = 56*78", function()
-      parser:parse("var\n  x = 12+34\n  y\n  z = 56*78")
-      stmt = parser:next()
-      assert(stmt):isTable():has({type = SentType.STMT, subtype = StmtType.VAR})
-      assert(stmt.vars):len(3)
-      assert(stmt.vars[1].name):eq("x")
-      assert(stmt.vars[1].value:__tostring()):eq("(+ 12 34)")
-      assert(stmt.vars[2].name):eq("y")
-      assert(stmt.vars[2].value):isNil()
-      assert(stmt.vars[3].name):eq("z")
-      assert(stmt.vars[3].value:__tostring()):eq("(* 56 78)")
-    end)
-
-    test("var\\nx = 12 + 34", function()
-      parser:parse("var\nx = 12 + 34")
-      stmt = parser:next()
-      assert(stmt):isTable():has({
-        type = SentType.STMT,
-        subtype = StmtType.VAR,
-        vars = {}
-      })
-    end)
-
-    test("var\\n  x = 12 + 34\\ny = 56 + 78", function()
-      parser:parse("var\n  x = 12 + 34\ny = 56 + 78")
-      stmt = parser:next()
-      assert(stmt):isTable():has({type = SentType.STMT, subtype = StmtType.VAR})
-      assert(stmt.vars):len(1)
-      assert(stmt.vars[1].name):eq("x")
-      assert(stmt.vars[1].value:__tostring()):eq("(+ 12 34)")
-    end)
-  end)
 
   ----------------
   -- nextEnum() --
@@ -1671,7 +1486,7 @@ return suite("dogma.syn.StmtParser", function()
           name = "p",
           optional = false,
           type = {
-            {name = "x", type = "any"}
+            {name = "x", type = "any", mandatory = true}
           }
         })
       end)
@@ -1698,13 +1513,13 @@ return suite("dogma.syn.StmtParser", function()
           name = "p",
           optional = false,
           type = {
-            {name = "x", type = "num"}
+            {name = "x", type = "num", mandatory = true}
           }
         })
       end)
 
-      test("fn Name(Name : {Name, Name})", function()
-        parser:parse("fn myfn(p:{x, y})")
+      test("fn Name(Name : {Name ? : Name})", function()
+        parser:parse("fn myfn(p:{x?:num})")
         stmt = parser:next()
         assert(stmt):isTable():has({
           line = 1,
@@ -1725,8 +1540,35 @@ return suite("dogma.syn.StmtParser", function()
           name = "p",
           optional = false,
           type = {
-            {name = "x", type = "any"},
-            {name = "y", type = "any"}
+            {name = "x", type = "num", mandatory = false}
+          }
+        })
+      end)
+
+      test("fn Name(Name : {Name, Name?:Name})", function()
+        parser:parse("fn myfn(p:{x, y?:text})")
+        stmt = parser:next()
+        assert(stmt):isTable():has({
+          line = 1,
+          col = 1,
+          annots = {},
+          visib = nil,
+          itype = nil,
+          name = "myfn",
+          accessor = nil,
+          rtype = nil,
+          rvar = nil,
+          body = {}
+        })
+        assert(stmt.params):len(1)
+        assert(stmt.params[1]):has({
+          const = false,
+          modifier = nil,
+          name = "p",
+          optional = false,
+          type = {
+            {name = "x", type = "any", mandatory = true},
+            {name = "y", type = "text", mandatory = false}
           }
         })
       end)
@@ -1905,9 +1747,63 @@ return suite("dogma.syn.StmtParser", function()
         assert(stmt.body):isEmpty()
       end)
 
-      test("fn Name ( Name := [0, 1, 2] ) - error", function()
-        parser:parse("fn inc(x := [0, 1, 2])")
-        assert(function() parser:next() end):raises("on (1, 13), for infering type, the default value must be a literal: text, num or bool.")
+      test("fn Name ( Name := list )", function()
+        parser:parse("fn inc(x := [])")
+
+        stmt = parser:next()
+        assert(stmt):isTable():has({
+          line = 1,
+          col = 1,
+          annots = {},
+          visib = nil,
+          itype = nil,
+          name = "inc",
+          accessor = nil,
+          rtype = nil,
+          rvar = nil
+        })
+        assert(stmt.params):len(1)
+        assert(stmt.params[1]):has({
+          const = false,
+          modifier = nil,
+          name = "x",
+          optional = true,
+          type = "list",
+        })
+        assert(tostring(stmt.params[1].value)):eq("[]")
+        assert(stmt.body):isEmpty()
+      end)
+
+      test("fn Name ( Name := map )", function()
+        parser:parse("fn inc(x := {})")
+
+        stmt = parser:next()
+        assert(stmt):isTable():has({
+          line = 1,
+          col = 1,
+          annots = {},
+          visib = nil,
+          itype = nil,
+          name = "inc",
+          accessor = nil,
+          rtype = nil,
+          rvar = nil
+        })
+        assert(stmt.params):len(1)
+        assert(stmt.params[1]):has({
+          const = false,
+          modifier = nil,
+          name = "x",
+          optional = true,
+          type = "map",
+        })
+        assert(tostring(stmt.params[1].value)):eq("{}")
+        assert(stmt.body):isEmpty()
+      end)
+
+      test("fn Name ( Name := nil ) - error", function()
+        parser:parse("fn inc(x := nil)")
+        assert(function() parser:next() end):raises("on (1, 13), for infering type, the default value must be a literal: bool, list, map, num or text.")
       end)
 
       test("fn Name . Name () : 123", function()
@@ -2202,7 +2098,7 @@ return suite("dogma.syn.StmtParser", function()
       assert(stmt.body):len(1)
       assert(stmt.body[1]:__tostring()):eq("return (+ x y)")
     end)
-  end):tags("pfn")
+  end)
 
   ----------------
   -- nextType() --
@@ -2414,10 +2310,70 @@ return suite("dogma.syn.StmtParser", function()
         line = 1,
         col = 1,
         subtype = StmtType.IF,
+        decl = nil,
         elif = nil,
         el = nil
       })
       assert(stmt.cond:__tostring()):eq("(== x 123)")
+      assert(stmt.body):len(1)
+      assert(stmt.body[1]:__tostring()):eq("(= x 321)")
+    end)
+
+    test("if var Exp then Exp", function()
+      parser:parse("if var x == 123 then x = 321")
+      assert(function() parser:next() end):raises("anonymous code: ';' expected on (1, 17).")
+    end)
+
+    test("if var Exp; then Exp", function()
+      parser:parse("if var x = 123; x then x = 321")
+
+      stmt = parser:next()
+      assert(stmt):isTable():has({
+        line = 1,
+        col = 1,
+        subtype = StmtType.IF,
+        decl = "var",
+        elif = nil,
+        el = nil
+      })
+      assert(tostring(stmt.value)):eq("(= x 123)")
+      assert(tostring(stmt.cond)):eq("x")
+      assert(stmt.body):len(1)
+      assert(stmt.body[1]:__tostring()):eq("(= x 321)")
+    end)
+
+    test("if const Exp; then Exp", function()
+      parser:parse("if const x = 123; x then x = 321")
+
+      stmt = parser:next()
+      assert(stmt):isTable():has({
+        line = 1,
+        col = 1,
+        subtype = StmtType.IF,
+        decl = "const",
+        elif = nil,
+        el = nil
+      })
+      assert(tostring(stmt.value)):eq("(= x 123)")
+      assert(tostring(stmt.cond)):eq("x")
+      assert(stmt.body):len(1)
+      assert(stmt.body[1]:__tostring()):eq("(= x 321)")
+    end)
+
+    test("if Exp; Exp then Exp", function()
+      parser:parse("if x == 123; x then x = 321")
+
+      stmt = parser:next()
+      assert(stmt):isTable():has({
+        line = 1,
+        col = 1,
+        subtype = StmtType.IF,
+        decl = nil,
+        elif = nil,
+        el = nil
+      })
+      assert(tostring(stmt.value)):eq("(== x 123)")
+      assert(tostring(stmt.cond)):eq("x")
       assert(stmt.body):len(1)
       assert(stmt.body[1]:__tostring()):eq("(= x 321)")
     end)
@@ -2430,6 +2386,7 @@ return suite("dogma.syn.StmtParser", function()
         line = 1,
         col = 1,
         subtype = StmtType.IF,
+        decl = nil,
         elif = nil,
         el = nil
       })
@@ -2446,6 +2403,7 @@ return suite("dogma.syn.StmtParser", function()
         line = 1,
         col = 1,
         subtype = StmtType.IF,
+        decl = nil,
         elif = nil,
       })
       assert(stmt.cond:__tostring()):eq("(== x 123)")
@@ -2463,6 +2421,7 @@ return suite("dogma.syn.StmtParser", function()
         line = 1,
         col = 1,
         subtype = StmtType.IF,
+        decl = nil,
         elif = nil,
         el = nil
       })
@@ -2479,6 +2438,7 @@ return suite("dogma.syn.StmtParser", function()
         line = 1,
         col = 1,
         subtype = StmtType.IF,
+        decl = nil,
         elif = nil,
       })
       assert(stmt.cond:__tostring()):eq("(== x 123)")
@@ -2496,6 +2456,7 @@ return suite("dogma.syn.StmtParser", function()
         line = 1,
         col = 1,
         subtype = StmtType.IF,
+        decl = nil,
         el = nil
       })
       assert(stmt.cond:__tostring()):eq("(== x 111)")
@@ -2515,6 +2476,7 @@ return suite("dogma.syn.StmtParser", function()
         line = 1,
         col = 1,
         subtype = StmtType.IF,
+        decl = nil,
         el = nil
       })
       assert(stmt.cond:__tostring()):eq("(== x 111)")
@@ -2536,7 +2498,9 @@ return suite("dogma.syn.StmtParser", function()
       assert(stmt):isTable():has({
         line = 1,
         col = 1,
-        subtype = StmtType.IF
+        subtype = StmtType.IF,
+        decl = nil
+
       })
       assert(stmt.cond:__tostring()):eq("(== x 111)")
       assert(stmt.body):len(1)

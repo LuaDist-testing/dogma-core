@@ -60,6 +60,8 @@ function StmtTrans:transform(stmt)
     return self:_transWhile(stmt)
   elseif stmt.subtype == StmtType.WITH then
     return self:_transWith(stmt)
+  elseif stmt.subtype == StmtType.YIELD then
+    return self:_transYield(stmt)
   end
 end
 
@@ -73,7 +75,7 @@ function StmtTrans:_transUse(stmt)
   code = ""
 
   for _, mod in ipairs(stmt.modules) do
-    code = code .. string.format('const %s = require("%s").default || require("%s");', mod.name, mod.path, mod.path)
+    code = code .. string.format('const %s = dogma.use(require("%s"));', mod.name, mod.path, mod.path)
   end
 
   --(2) return
@@ -131,6 +133,10 @@ function StmtTrans:_transEnum(enum)
   constructor(name, val) {
     Object.defineProperty(this, "name", {value: name, enum: true});
     Object.defineProperty(this, "value", {value: val, enum: true});
+  }
+
+  toString() {
+    return this.name;
   }
 }
 ]],
@@ -196,64 +202,117 @@ function StmtTrans:_transVar(stmt)
   local code
 
   --(1) transform
-  if #stmt.vars > 0 then
-    if stmt.visib then
-      code = "var "
-    else
-      code = "let "
-    end
+  code = ""
 
-    for i, var in ipairs(stmt.vars) do
-      code = code .. (i == 1 and "" or ", ") .. var.name
-
-      if var.value then
-        code = code .. " = " .. self._.trans:_trans(var.value)
+  if #stmt.decls > 0 then
+    for _, decl in ipairs(stmt.decls) do
+      if decl.type == "std" then
+        code = code .. self:_transStdDecl(stmt.visib, true, decl)
+      elseif decl.type == "map" then
+        code = code .. self:_transMapDecl(stmt.visib, true, decl)
+      else
+        code = code .. self:_transListDecl(stmt.visib, true, decl)
       end
     end
-
-    code = code .. ";"
-
-    if stmt.visib then
-      for _, var in ipairs(stmt.vars) do
-        code = code .. self:_transVisib(stmt.visib) .. var.name .. ";"
-      end
-    end
-  else
-    code = ""
   end
 
   --(2) return
   return code
 end
 
---Transform a const statement.
+--Transform a var statement.
 --
 --@return string
 function StmtTrans:_transConst(stmt)
   local code
 
   --(1) transform
-  if #stmt.vars > 0 then
-    code = "const "
+  code = ""
 
-    for i, var in ipairs(stmt.vars) do
-      code = code .. (i == 1 and "" or ", ") ..
-             var.name .. " = " .. self._.trans:_trans(var.value)
-    end
-
-    code = code .. ";"
-
-    if stmt.visib then
-      for _, var in ipairs(stmt.vars) do
-        code = code .. self:_transVisib(stmt.visib) .. var.name .. ";"
+  if #stmt.decls > 0 then
+    for _, decl in ipairs(stmt.decls) do
+      if decl.type == "std" then
+        code = code .. self:_transStdDecl(stmt.visib, false, decl)
+      elseif decl.type == "map" then
+        code = code .. self:_transMapDecl(stmt.visib, false, decl)
+      else
+        code = code .. self:_transListDecl(stmt.visib, false, decl)
       end
     end
-  else
-    code = ""
   end
 
   --(2) return
   return code
+end
+
+function StmtTrans:_transStdDecl(visib, var, decl)
+  local code
+
+  --(1) transform
+  code = (var and (visib and "var " or "let ") or "const ")
+
+  if decl.value then
+    code = code .. string.format("%s = %s;", decl.name, self._.trans:_trans(decl.value))
+  else
+    code = code .. decl.name .. ";"
+  end
+
+  if visib then
+    visib = self:_transVisib(visib)
+
+    if visib == "export default " then
+      code = code .. visib .. decl.name .. ";"
+    else
+      code = code .. visib .. "{" .. decl.name .. "};"
+    end
+  end
+
+  --(2) return
+  return code
+end
+
+function StmtTrans:_transMapDecl(visib, var, decl)
+  local code
+
+  --(1) transform
+  code = var and (visib and "var {" or "let {") or "const {"
+
+  for ix, name in ipairs(decl.names) do
+    code = code .. (ix == 1 and "" or ", ") .. name
+  end
+
+  code = code .. string.format("} = %s;", self._.trans:_trans(decl.value))
+
+  if visib then
+    code = code .. self:_transVisib(visib) .. "{" .. table.concat(decl.names, ", ") .. "};"
+  end
+
+  --(2) return
+  return code;
+end
+
+function StmtTrans:_transListDecl(visib, var, decl)
+  local code
+
+  --(1) transform
+  code = var and (visib and "var [" or "let [") or "const ["
+
+  for ix, name in ipairs(decl.names) do
+    code = code .. (ix == 1 and "" or ", ") .. name
+  end
+
+  code = code .. string.format(
+    "] = dogma.getArrayToUnpack(%s, %s);",
+    self._.trans:_trans(decl.value),
+    #decl.names
+  )
+
+  if visib then
+    code = code .. self:_transVisib(visib) .. "{" .. table.concat(decl.names, ", "):gsub("%.%.%.", "") .. "};"
+  end
+
+  --(2) return
+  return code;
 end
 
 --Transform an while statement.
@@ -427,17 +486,11 @@ function StmtTrans:_transForEach(node)
 
   --(1) transform
   if node.key then
-    local iter = self:_getRandomName()
-
     code = string.format(
-      "const %s = %s; for (let %s in %s) { let %s = %s[%s]; ",
-      iter,
-      trans:_trans(node.iter),
+      "for (let [%s, %s] of Object.entries(%s)) { ",
       node.key,
-      iter,
       node.value,
-      iter,
-      node.key
+      trans:_trans(node.iter)
     )
   else
     code = string.format(
@@ -483,6 +536,13 @@ function StmtTrans:_transReturn(node)
   return code
 end
 
+--Transform a yield statement.
+--
+--@return string
+function StmtTrans:_transYield(node)
+  return "yield" .. " " .. self._.trans:_trans(node.value) .. ";"
+end
+
 --Transform a type statement.
 --
 --@return string
@@ -498,15 +558,20 @@ function StmtTrans:_transType(stmt)
 
   code = code .. " {\n"
 
-  code = code .. string.format("  constructor(%s) { ", self:_transParams(stmt.params))
-  code = code .. self:_transParamsCheck(stmt.params)
-  code = code .. self:_transSuperConstructor(stmt.bargs)
-  code = code .. self:_transSelfParams(stmt.params)
-  if stmt.catch or stmt.finally then code = code .. " try " end
-  code = code .. self:_transBody(stmt.body)
-  code = code .. self:_transCatch(stmt.catch)
-  code = code .. self:_transFinally(stmt.finally)
-  code = code .. "  }\n"
+  if tablex.find(stmt.annots, "todo") then
+    code = code .. string.format("  constructor() { todo(); }\n")
+  else
+    code = code .. string.format("  constructor(%s) { ", self:_transParams(stmt.params))
+    code = code .. self:_transParamsCheck(stmt.params)
+    code = code .. self:_transSuperConstructor(stmt.bargs)
+    code = code .. self:_transSelfParams(stmt.params)
+    if stmt.catch or stmt.finally then code = code .. " try " end
+    code = code .. self:_transBody(stmt.body)
+    code = code .. self:_transCatch(stmt.catch)
+    code = code .. self:_transFinally(stmt.finally)
+    code = code .. "  }\n"
+  end
+
   code = code .. "};\n"
 
   --class proxy
@@ -566,7 +631,12 @@ function StmtTrans:_transParamsCheck(params)
 
     repr = "{"
     for ix, val in ipairs(obj) do
-      repr = repr .. (ix == 1 and "" or ", ") .. val.name .. ": " .. val.type
+      repr = repr .. (ix == 1 and "" or ", ") .. string.format(
+        "%s: {type: %s, mandatory: %s}",
+        val.name,
+        val.type,
+        val.mandatory
+      )
     end
     repr = repr .. "}"
 
@@ -694,25 +764,36 @@ function StmtTrans:_transStdFn(fn)
   local code
 
   --(1) transform
-  code = string.format(
-    "%s%sfunction %s(%s) { ",
-    self:_transVisib(fn.visib),
-    fn.async and "async " or "",
-    fn.name,
-    self:_transParams(fn.params)
-  )
+  if tablex.find(fn.annots, "todo") then
+    code = string.format(
+      "%s%sfunction%s %s() { todo(); }",
+      self:_transVisib(fn.visib),
+      fn.async and "async " or "",
+      tablex.find(fn.annots, "iter") and "*" or "",
+      fn.name
+    )
+  else
+    code = string.format(
+      "%s%sfunction%s %s(%s) { ",
+      self:_transVisib(fn.visib),
+      fn.async and "async " or "",
+      tablex.find(fn.annots, "iter") and "*" or "",
+      fn.name,
+      self:_transParams(fn.params)
+    )
 
-  code = code .. self:_transReturnVar(fn)
-  code = code .. self:_transParamsCheck(fn.params)
-  code = code .. self:_transSelfParams(fn.params)
-  if fn.catch or fn.finally then code = code .. " try " end
-  code = code .. self:_transBody(fn.body)
-  code = code .. self:_transCatch(fn.catch)
-  code = code .. self:_transFinally(fn.finally)
-  if fn.rvar then
-    code = code .. string.format(" return %s;", fn.rvar == "self" and "this" or fn.rvar)
+    code = code .. self:_transReturnVar(fn)
+    code = code .. self:_transParamsCheck(fn.params)
+    code = code .. self:_transSelfParams(fn.params)
+    if fn.catch or fn.finally then code = code .. " try " end
+    code = code .. self:_transBody(fn.body)
+    code = code .. self:_transCatch(fn.catch)
+    code = code .. self:_transFinally(fn.finally)
+    if fn.rvar then
+      code = code .. string.format(" return %s;", fn.rvar == "self" and "this" or fn.rvar)
+    end
+    code = code .. " }"
   end
-  code = code .. " }"
 
   --(2) return
   return code
@@ -721,9 +802,62 @@ end
 function StmtTrans:_transTypeFn(stmt)
   if tablex.find(stmt.annots, "prop") then
     return self:_transProp(stmt)
+  elseif tablex.find(stmt.annots, "iter") then
+    return self:_transIterMethod(stmt)
   else
     return self:_transMethod(stmt)
   end
+end
+
+function StmtTrans:_transIterMethod(stmt)
+  local code
+
+  --(1) transform
+  if tablex.find(stmt.annots, "todo") then
+    if stmt.name == "iter" then
+      code = string.format(
+        "%s.prototype[Symbol.iterator] = function*() { todo(); };",
+        stmt.itype
+      )
+    else
+      code = string.format(
+        '%s.prototype.%s%s = function*() { todo(); };',
+        stmt.itype,
+        stmt.visib == "pub" and "" or "_",
+        stmt.name
+      )
+    end
+  else
+    if stmt.name == "iter" then
+      code = string.format(
+        "%s.prototype[Symbol.iterator] = function*() ",
+        stmt.itype
+      )
+    else
+      code = string.format(
+        '%s.prototype.%s%s = function*() ',
+        stmt.itype,
+        stmt.visib == "pub" and "" or "_",
+        stmt.name
+      )
+    end
+
+    code = code .. self:_transReturnVar(stmt)
+    if stmt.catch or stmt.finally then code = code .. " try " end
+    code = code .. self:_transBody(stmt.body)
+    code = code .. self:_transCatch(stmt.catch)
+    code = code .. self:_transFinally(stmt.finally)
+
+
+    -- if stmt.rvar then
+    --   code = code .. string.format(" return %s;", stmt.rvar == "self" and "this" or stmt.rvar)
+    -- end
+
+    code = code .. ";"
+  end
+
+  --(2) return
+  return code
 end
 
 function StmtTrans:_transProp(stmt)
@@ -740,6 +874,8 @@ function StmtTrans:_transProp(stmt)
 
   if tablex.find(stmt.annots, "abstract") then
     code = code .. "abstract();"
+  elseif tablex.find(stmt.annots, "todo") then
+    code = code .. "todo();"
   else
     code = code .. self:_transReturnVar(stmt)
     if stmt.catch or stmt.finally then code = code .. " try " end
@@ -771,39 +907,60 @@ function StmtTrans:_transMethod(stmt)
     )
   else
     if tablex.find(stmt.annots, "static") then
-      code = string.format(
-        "%s.%s%s = %sfunction(%s) { ",
-        stmt.itype,
-        stmt.visib == "pub" and "" or "_",
-        stmt.name,
-        stmt.async and "async " or "",
-        self:_transParams(stmt.params)
-      )
+      if tablex.find(stmt.annots, "todo") then
+        code = string.format(
+          "%s.%s%s = %sfunction() { todo(); };",
+          stmt.itype,
+          stmt.visib == "pub" and "" or "_",
+          stmt.name,
+          stmt.async and "async " or ""
+        )
+      else
+        code = string.format(
+          "%s.%s%s = %sfunction(%s) { ",
+          stmt.itype,
+          stmt.visib == "pub" and "" or "_",
+          stmt.name,
+          stmt.async and "async " or "",
+          self:_transParams(stmt.params)
+        )
+      end
     else
-      code = string.format(
-        "%s.prototype.%s%s = %sfunction(%s) { ",
-        stmt.itype,
-        stmt.visib == "pub" and "" or "_",
-        stmt.name,
-        stmt.async and "async " or "",
-        self:_transParams(stmt.params)
-      )
+      if tablex.find(stmt.annots, "todo") then
+        code = string.format(
+          "%s.prototype.%s%s = function() { todo(); };",
+          stmt.itype,
+          stmt.visib == "pub" and "" or "_",
+          stmt.name
+        )
+      else
+        code = string.format(
+          "%s.prototype.%s%s = %sfunction(%s) { ",
+          stmt.itype,
+          stmt.visib == "pub" and "" or "_",
+          stmt.name,
+          stmt.async and "async " or "",
+          self:_transParams(stmt.params)
+        )
+      end
     end
 
-    code = code .. self:_transReturnVar(stmt)
-    code = code .. self:_transParamsCheck(stmt.params)
-    code = code .. self:_transSelfParams(stmt.params)
+    if not tablex.find(stmt.annots, "todo") then
+      code = code .. self:_transReturnVar(stmt)
+      code = code .. self:_transParamsCheck(stmt.params)
+      code = code .. self:_transSelfParams(stmt.params)
 
-    if stmt.catch or stmt.finally then code = code .. " try " end
-    code = code .. self:_transBody(stmt.body)
-    code = code .. self:_transCatch(stmt.catch)
-    code = code .. self:_transFinally(stmt.finally)
+      if stmt.catch or stmt.finally then code = code .. " try " end
+      code = code .. self:_transBody(stmt.body)
+      code = code .. self:_transCatch(stmt.catch)
+      code = code .. self:_transFinally(stmt.finally)
 
-    if stmt.rvar then
-      code = code .. string.format(" return %s;", stmt.rvar == "self" and "this" or stmt.rvar)
+      if stmt.rvar then
+        code = code .. string.format(" return %s;", stmt.rvar == "self" and "this" or stmt.rvar)
+      end
+
+      code = code .. " };"
     end
-
-    code = code .. " };"
   end
 
   --(2) return
@@ -826,6 +983,8 @@ function StmtTrans:_transReturnVar(fn)
         code = string.format("let %s = false;", fn.rvar)
       elseif fn.rtype == "text" then
         code = string.format('let %s = "";', fn.rvar)
+      elseif fn.rtype == "num" then
+        code = string.format('let %s = 0;', fn.rvar)
       else
         code = string.format("let %s;", fn.rvar)
       end
@@ -844,7 +1003,18 @@ function StmtTrans:_transIf(stmt)
   local code
 
   --(1) transform
-  code = string.format(
+  code = ""
+
+  if stmt.value then
+    if stmt.decl then
+      code = "{" .. (stmt.decl == "var" and "let " or "const ")
+      code = code .. trans:_trans(stmt.value):sub(2, -2) .. "; "
+    else
+      code = code .. trans:_trans(stmt.value) .. "; "
+    end
+  end
+
+  code = code .. string.format(
     "if (%s) %s",
     trans:_trans(stmt.cond),
     self:_transBody(stmt.body)
@@ -862,6 +1032,10 @@ function StmtTrans:_transIf(stmt)
 
   if stmt.el then
     code = code .. " else " .. self:_transBody(stmt.el)
+  end
+
+  if stmt.decl then
+    code = code .. "}"
   end
 
   --(2) return

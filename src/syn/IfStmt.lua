@@ -9,11 +9,13 @@ setmetatable(IfStmt, {__index = Stmt})
 package.loaded[...] = IfStmt
 
 --Constructor.
-function IfStmt.new(ln, col, cond, body, elif, el)
+function IfStmt.new(ln, col, decl, val, cond, body, elif, el)
   local self
 
   --(1) create
   self = setmetatable(Stmt.new(StmtType.IF, ln, col), IfStmt)
+  self.decl = decl
+  self.value = val
   self.cond = cond
   self.body = body
   self.elif = elif

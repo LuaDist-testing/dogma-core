@@ -702,6 +702,42 @@ return suite("dogma.lex.Lexer", function()
       })
     end)
 
+    test("_scanLiteralString() - \"\"\"txt1\\n   txt2\"\"\"", function()
+      lexer:scan('   """\n   text1\n   text2"""')
+
+      assert(lexer:next()):isTable():has({
+        type = TokenType.LITERAL,
+        subtype = LiteralType.STRING,
+        line = 1,
+        col = 4,
+        value = "text1\ntext2"
+      })
+    end)
+
+    test("_scanLiteralString() - \"\"\"txt1\\n   txt2\\n   \"\"\"", function()
+      lexer:scan('   """\n   text1\n   text2\n   """')
+
+      assert(lexer:next()):isTable():has({
+        type = TokenType.LITERAL,
+        subtype = LiteralType.STRING,
+        line = 1,
+        col = 4,
+        value = "text1\ntext2"
+      })
+    end)
+
+    test("_scanLiteralString() - \"\"\"\\ntxt\"\"\"", function()
+      lexer:scan('"""\ntext"""')
+
+      assert(lexer:next()):isTable():has({
+        type = TokenType.LITERAL,
+        subtype = LiteralType.STRING,
+        line = 1,
+        col = 1,
+        value = "text"
+      })
+    end)
+
     test("_scanLiteralString() - error - literal string opened but not closed #1", function()
       lexer:scan('"text')
       assert(function() lexer:next() end):raises("literal string opened but not closed on (1, 1).")
@@ -883,6 +919,32 @@ return suite("dogma.lex.Lexer", function()
       assert(lexer:next()):has({type = TokenType.SYMBOL, line = 1, col = 3, value = "+="})
       assert(lexer:next()):has({type = TokenType.EOL, line = 1, col = 5})
       assert(function() lexer:next(TokenType.LITERAL, 123) end):raises("'123' expected at the end of code.")
+    end)
+  end)
+
+  --------------
+  -- nextId() --
+  --------------
+  suite("nextId()", function()
+    local lex
+
+    init("*", function()
+      lex = Lexer.new()
+    end):title("Create lexer")
+
+    test("nextId() - keyword", function()
+      lex:scan("export")
+      assert(lex:nextId()):has({type = TokenType.KEYWORD, line = 1, col = 1, value = "export"})
+    end)
+
+    test("nextId() - name", function()
+      lex:scan("name")
+      assert(lex:nextId()):has({type = TokenType.NAME, line = 1, col = 1, value = "name"})
+    end)
+
+    test("nextId() - other", function()
+      lex:scan("+1")
+      assert(function() lex:nextId() end):raises("on (1, 1), id expected.")
     end)
   end)
 end):tags("lexer")

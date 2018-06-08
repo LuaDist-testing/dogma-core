@@ -39,6 +39,13 @@ function Lexer.new(props)
   return self
 end
 
+--Raises an error.
+--
+--@param msg:string
+function Lexer:throw(msg)
+  error(string.format("%s: %s", self._.file, msg))
+end
+
 --Scan a text.
 --
 --@param text:string  Text to analyze.
@@ -47,7 +54,7 @@ end
 --@return self
 function Lexer:scan(text, file)
   --(1) arguments
-  if not text then error("text expected.") end
+  if not text then self:throw("text expected.") end
 
   --(2) init
   self._.reader = Reader.new(text)
@@ -144,30 +151,30 @@ function Lexer:next(typ, val)
     tok = self._.token
 
     if tok == nil then
-      error(string.format("'%s' expected at the end of code.", val))
+      self:throw(string.format("'%s' expected at the end of code.", val))
     end
 
     if tok.type ~= typ or (val ~= nil and tok.value ~= val) then
       if typ == TokenType.EOL then
-        error(string.format(
+        self:throw(string.format(
           "end of line expected on (%s, %s).",
           tok.line,
           tok.col
         ))
       elseif typ == TokenType.NAME then
-        error(string.format(
+        self:throw(string.format(
           "name expected on (%s, %s).",
           tok.line,
           tok.col
         ))
       elseif typ == TokenType.LITERAL then
-        error(string.format(
+        self:throw(string.format(
           "literal expected on (%s, %s).",
           tok.line,
           tok.col
         ))
       else
-        error(string.format(
+        self:throw(string.format(
           "'%s' expected on (%s, %s).",
           val,
           tok.line,
@@ -179,6 +186,47 @@ function Lexer:next(typ, val)
 
   --(3) return
   return self._.token
+end
+
+--Return the next token that must be an end of line.
+--
+--@return Eol
+function Lexer:nextEol()
+  return self:next(TokenType.EOL)
+end
+
+--Return the next token that must be an id: keyword or name.
+--
+--@return Id
+function Lexer:nextId()
+  local tok = self:advance()
+
+  if tok.type == TokenType.KEYWORD or tok.type == TokenType.NAME then
+    return self:next()
+  else
+    self:throw(string.format("on (%s, %s), id expected.", tok.line, tok.col))
+  end
+end
+
+--Return the next token that must be a name.
+--
+--@return Name
+function Lexer:nextName()
+  return self:next(TokenType.NAME)
+end
+
+--Return the next token that must be a symbol.
+--
+--@return Symbol
+function Lexer:nextSymbol(val)
+  return self:next(TokenType.SYMBOL, val)
+end
+
+--Return the next token that must be a keyword.
+--
+--@return Keyword
+function Lexer:nextKeyword(val)
+  return self:next(TokenType.KEYWORD, val)
 end
 
 --Advance the next token.
@@ -229,7 +277,7 @@ end
 function Lexer:_shift()
   --(1) pre
   if #self._.advanced == 0 then
-    error("no advanced token to shift.")
+    self:throw("no advanced token to shift.")
   end
 
   --(2) current to processed
@@ -245,7 +293,7 @@ end
 function Lexer:unshift()
   --(1) pre
   if not self._.token and #self._.processed == 0 then
-    error("no current token to unshift.")
+    self:throw("no current token to unshift.")
   end
 
   --(2) current to advanced
@@ -349,7 +397,7 @@ function Lexer:_scanDirective()
   end
 
   if not (val:find("^if [a-zA-Z]+ then$") or val:find("^if not [a-zA-Z]+ then$") or val:find("^/") or val == "end" or val == "else") then
-    error(string.format("on (%s,%s), invalid directive.", ln, col))
+    self:throw(string.format("on (%s,%s), invalid directive.", ln, col))
   end
 
   --(2) return
@@ -528,10 +576,12 @@ function Lexer:_scanSymbol()
     ["!~"] = true,
     ["<"] = true,
     ["<<"] = true,
+    ["<<<"] = true,
     ["<<="] = true,
     ["<="] = true,
     [">"] = true,
     [">>"] = true,
+    [">>>"] = true,
     [">>="] = true,
     [">="] = true,
     ["^"] = true,
@@ -589,7 +639,7 @@ function Lexer:_scanSymbol()
 
   --(2) return
   if sym == nil then
-    error(string.format("invalid symbol on (%s, %s).", reader._.line, reader._.col - 1))
+    self:throw(string.format("invalid symbol on (%s, %s).", reader._.line, reader._.col - 1))
   end
 
   return Symbol.new(ln, col, sym)
@@ -672,7 +722,8 @@ function Lexer:_scanLiteralString()
     TEXT3 = 5,
     END1 = 6,
     END2 = 7,
-    END = 8
+    END = 8,
+    TEXT3_START = 9
   }
 
   --(1) state machine
@@ -681,7 +732,7 @@ function Lexer:_scanLiteralString()
   while state ~= State.END do
     local ch = reader:next()
 
-    if state == State.START then
+    ::START::if state == State.START then
       ln, col, lit = ch.line, ch.col, ""
       state = State.START1
     elseif state == State.START1 then
@@ -697,14 +748,14 @@ function Lexer:_scanLiteralString()
       ch = ch.char
 
       if ch == '"' then
-        state = State.TEXT3
+        state = State.TEXT3_START
       else
         reader:unshift()
         state = State.END
       end
     elseif state == State.TEXT1 then  --"literal"
       if ch == nil then
-        error(string.format("literal string opened but not closed on (%s, %s).", ln, col))
+        self:throw(string.format("literal string opened but not closed on (%s, %s).", ln, col))
       end
 
       ch = ch.char
@@ -714,17 +765,22 @@ function Lexer:_scanLiteralString()
       else
         lit = lit .. ch
       end
+    elseif state == State.TEXT3_START then
+      state = State.TEXT3
+      if ch.char ~= "\n" then goto START end
     elseif state == State.TEXT3 then  --"""literal"""
       if ch == nil then
-        error(string.format("literal string opened but not closed on (%s, %s).", ln, col))
+        self:throw(string.format("literal string opened but not closed on (%s, %s).", ln, col))
       end
 
-      ch = ch.char
+      if ch.col >= col or ch.char ~= " " then
+        ch = ch.char
 
-      if ch == '"' then
-        state = State.END1
-      else
-        lit = lit .. ch
+        if ch == '"' then
+          state = State.END1
+        else
+          lit = lit .. ch
+        end
       end
     elseif state == State.END1 then
       ch = ch.char
@@ -737,13 +793,17 @@ function Lexer:_scanLiteralString()
       end
     else  --State.END2
       if ch == nil then
-        error(string.format("literal string opened but not closed on (%s, %s).", ln, col))
+        self:throw(string.format("literal string opened but not closed on (%s, %s).", ln, col))
       end
 
       ch = ch.char
 
       if ch == '"' then
         state = State.END
+
+        if lit:sub(-1) == "\n" then
+          lit = lit:sub(1, -2)
+        end
       else
         lit = lit .. '""' .. ch
       end

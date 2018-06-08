@@ -46,24 +46,8 @@ function UnpackTrans:_transList(sent)
   local trans = self._.trans
   local code
 
-  --(1) visibility?
-  if sent.visib == nil then
-    code = ""
-  elseif sent.visib == "export" then
-    code = "export default "
-  elseif sent.visib == "pub" then
-    code = "export "
-  end
-
-  --(2) var or const definition?
-  if sent.def == "var" then
-    code = code .. "let "
-  elseif sent.def == "const" then
-    code = code .. "const "
-  end
-
-  --(3) variables
-  code = code .. "["
+  --(1) variables
+  code = "["
 
   for i, def in ipairs(sent.vars) do
     local var = self:_transDataAccess(def)
@@ -243,58 +227,24 @@ function UnpackTrans:_transMap(sent)
   local trans = self._.trans
   local code
 
-  --(1) visibility?
-  if sent.visib == nil then
-    code = ""
-  elseif sent.visib == "export" then
-    code = "export default "
-  elseif sent.visib == "pub" then
-    code = "export "
-  end
-
-  --(2) var or const definition?
-  if sent.def == "var" then
-    code = code .. "let "
-  elseif sent.def == "const" then
-    code = code .. "const "
-  end
-
-  --(3) variables
-  if not sent.def then
-    code = "({"
-  else
-    code = code .. "{"
-  end
+  --(1) variables
+  code = "({"
 
   for i, var in ipairs(sent.vars) do
-    if sent.def then
-      code = code .. (i == 1 and "" or ", ") .. string.format(
-        "%s%s",
-        var.name,
-        var.value and (" = " .. trans:_trans(var.value)) or ""
-      )
-    else
-      code = code .. (i == 1 and "" or ", ") .. string.format(
-        "%s: %s%s",
-        var.name,
-        self:_transDataAccess(var),
-        var.value and (" = " .. trans:_trans(var.value)) or ""
-      )
-    end
+    code = code .. (i == 1 and "" or ", ") .. string.format(
+      "%s: %s%s",
+      var.name,
+      self:_transDataAccess(var),
+      var.value and (" = " .. trans:_trans(var.value)) or ""
+    )
   end
 
   code = code .. "}"
 
-  --(4) expression
-  code = code .. " = " .. trans:_trans(sent.exp)
+  --(2) expression
+  code = code .. " = " .. trans:_trans(sent.exp) .. ");"
 
-  if not sent.def then
-    code = code .. ")"
-  end
-
-  code = code .. ";"
-
-  --(5) return
+  --(3) return
   return code
 end
 

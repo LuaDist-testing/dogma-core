@@ -47,7 +47,7 @@ function ExpTrans:_transTerminal(node)
   elseif node.subtype == TerminalType.NUM then
     return tostring(node.data)
   elseif node.subtype == TerminalType.TEXT then
-    return string.format([["%s"]], node.data)
+    return string.format([["%s"]], node.data:gsub('"', '\\"')):gsub("\n", "\\n")
   elseif node.subtype == TerminalType.TRUE then
     return "true"
   elseif node.subtype == TerminalType.FALSE then
@@ -66,6 +66,8 @@ function ExpTrans:_transTerminal(node)
     return "dogma.nop()"
   elseif node.subtype == TerminalType.FN then
     return self:_transLiteralFn(node)
+  elseif node.subtype == TerminalType.IIF then
+    return self:_transIifFn(node)
   elseif node.subtype == TerminalType.SUBEXP then
     return self:transform(node.data)
   elseif node.subtype == TerminalType.NATIVE then
@@ -74,8 +76,12 @@ function ExpTrans:_transTerminal(node)
     return self:_transAwaitFn(node)
   elseif node.subtype == TerminalType.PEVAL then
     return self:_transPevalFn(node)
+  elseif node.subtype == TerminalType.PAWAIT then
+    return self:_transPawaitFn(node)
   elseif node.subtype == TerminalType.THROW then
     return self:_transThrowFn(node)
+  elseif node.subtype == TerminalType.USE then
+    return self:_transUseFn(node)
   elseif node.subtype == TerminalType.IF then
     return self:_transIfSubExp(node)
   end
@@ -87,7 +93,7 @@ function ExpTrans:_transIfSubExp(node)
     "(%s ? %s : %s)",
     self:transform(node.cond),
     self:transform(node.trueCase),
-    self:transform(node.falseCase)
+    node.falseCase ~= nil and self:transform(node.falseCase) or "null"
   )
 end
 
@@ -101,9 +107,29 @@ function ExpTrans:_transAwaitFn(fn)
   return string.format("await(%s)", self:transform(fn.exp))
 end
 
+--Transform a pawait() function.
+function ExpTrans:_transPawaitFn(fn)
+  return string.format("dogma.pawait((done) => {%s;})", self:transform(fn.exp))
+end
+
+--Transform a use() function.
+function ExpTrans:_transUseFn(fn)
+  return string.format("dogma.use(require(%s))", self:transform(fn.exp))
+end
+
 --Transform a peval() function.
 function ExpTrans:_transPevalFn(fn)
   return string.format("dogma.peval(() => {return %s;})", self:transform(fn.exp))
+end
+
+--Transform an iif() function.
+function ExpTrans:_transIifFn(fn)
+  return string.format(
+    "(%s ? %s : %s)",
+    self:transform(fn.cond),
+    self:transform(fn.onTrue),
+    fn.onFalse and self:transform(fn.onFalse) or "null"
+  )
 end
 
 --Transform a throw() function.
@@ -170,7 +196,7 @@ function ExpTrans:_transLiteralFn(term)
   local strans = self._.trans._.stmtTrans
 
   return string.format(
-    "(%s) => { %s%s%s%s }",
+    "((%s) => { %s%s%s%s })",
     strans:_transParams(term.data.params),
     strans:_transReturnVar(term.data),
     strans:_transParamsCheck(term.data.params),
@@ -220,13 +246,17 @@ function ExpTrans:_transUnaryOp(node)
     return string.format("-(%s)", self:_transNode(node.child))
   elseif node.op == "..." then
     return string.format("...(%s)", self:_transNode(node.child))
+  elseif node.op == "<<<" then
+    return string.format("dogma.lshift(%s)", self:_transNode(node.child))
+  elseif node.op == ">>>" then
+    return string.format("dogma.rshift(%s)", self:_transNode(node.child))
   end
 end
 
 function ExpTrans:_transBinOp(node)
   local left, right = node.children[1], node.children[2]
 
-  if tablex.find({"+", "-", "*", "**", "/", "%", "==", "!=", "===", "!==", "<", "<=", ">", ">=", "<<", ">>", "||", "&&"}, node.op) then
+  if tablex.find({"+", "-", "*", "**", "/", "%", "==", "!=", "===", "!==", "<", "<=", ">", ">=", "||", "&&", "<<", "<<"}, node.op) then
     return "(" .. self:_transNode(left) .. node.op .. self:_transNode(right) .. ")"
   elseif tablex.find({"=", "+=", "-=", "*=", "**=", "/=", "%=", "<<=", ">>=", "|=", "&=", "^="}, node.op) then
     return self:_transAssign(node)
@@ -240,6 +270,10 @@ function ExpTrans:_transBinOp(node)
     return self:_transAssignWithPubProp(node)
   elseif node.op == ":=" then
     return self:_transConstAssign(node)
+  elseif node.op == ">>>" then
+    return string.format("dogma.rshift(%s, %s)", self:_transNode(left), self:_transNode(right))
+  elseif node.op == "<<<" then
+    return string.format("dogma.lshift(%s, %s)", self:_transNode(left), self:_transNode(right))
   elseif node.op == "and" then
     return "(" .. self:_transNode(left) .. "&&" .. self:_transNode(right) .. ")"
   elseif node.op == "or" then
@@ -247,17 +281,25 @@ function ExpTrans:_transBinOp(node)
   elseif node.op == "?" then
     return string.format("(%s != null ? %s.%s : null)", self:_transNode(left), self:_transNode(left), self:_transNode(right))
   elseif node.op == "." then
-    return self:_transNode(left) .. "." .. self:_transNode(right)
+    if left.subtype == TerminalType.SUPER then
+      return string.format('dogma.super(this, "%s")', self:_transNode(right))
+    else
+      return self:_transNode(left) .. "." .. self:_transNode(right)
+    end
   elseif node.op == ":" then
-    return self:_transNode(left) .. "._" .. right.data
+    if left.subtype == TerminalType.SUPER then
+      return string.format('dogma.super(this, "_%s")', self:_transNode(right))
+    else
+      return self:_transNode(left) .. "._" .. self:_transNode(right)
+    end
   elseif node.op == "is" then
     return string.format("dogma.is(%s, %s)", self:_transNode(left), self:_transNode(right))
   elseif node.op == "isnot" then
     return string.format("dogma.isNot(%s, %s)", self:_transNode(left), self:_transNode(right))
   elseif node.op == "in" then
-    return string.format("(%s).includes(%s)", self:_transNode(right), self:_transNode(left))
+    return string.format("dogma.includes(%s, %s)", self:_transNode(right), self:_transNode(left))
   elseif node.op == "notin" then
-    return string.format("!(%s).includes(%s)", self:_transNode(right), self:_transNode(left))
+    return string.format("!dogma.includes(%s, %s)", self:_transNode(right), self:_transNode(left))
   elseif node.op == "like" then
     return string.format("dogma.like(%s, %s)", self:_transNode(left), self:_transNode(right))
   elseif node.op == "notlike" then
@@ -416,6 +458,8 @@ function ExpTrans:_transNaryOp(node)
     return self:_transCallOp(node)
   elseif node.op == "{}" then
     return self:_transPackOp(node)
+  elseif node.op == ".{}" then
+    return self:_transUpdateOp(node)
   end
 end
 
@@ -437,8 +481,31 @@ function ExpTrans:_transPackOp(node)
   local code
 
   --(1) transform
-  if #node.children == 2 and node.children[2].name == "*" then
-    code = string.format("dogma.clone(%s)", self:_transNode(node.children[1]))
+  if #node.children > 1 and node.children[2].name == "*" then
+    code = string.format("dogma.clone(%s", self:_transNode(node.children[1]))
+
+    for i, item in ipairs(node.children) do
+      if i == 3 then
+        code = code .. ", {"
+      elseif i > 3 then
+        code = code .. ", "
+      end
+
+      if i >= 3 then
+        code = code .. string.format(
+          '"%s%s": %s',
+          item.visib == "." and "" or "_",
+          item.name,
+          self:transform(item.value)
+        )
+      end
+    end
+
+    if #node.children > 2 then
+      code = code .. "})"
+    else
+      code = code .. ")"
+    end
   else
     code = "dogma.pack("
 
@@ -446,12 +513,54 @@ function ExpTrans:_transPackOp(node)
       if i == 1 then
         code = code .. self:_transNode(item)
       else
-        code = code .. string.format(', "%s%s"', item.visib == "." and "" or "_", item.name)
+        if item.value == nil then
+          code = code .. string.format(', "%s%s"', item.visib == "." and "" or "_", item.name)
+        else
+          code = code .. string.format(
+            ', {name: "%s%s", value: %s}',
+            item.visib == "." and "" or "_",
+            item.name,
+            self:transform(item.value)
+          )
+        end
       end
     end
 
     code = code .. ")"
   end
+
+  --(2) return
+  return code
+end
+
+function ExpTrans:_transUpdateOp(op)
+  local code
+
+  --(1) transform
+  code = "dogma.update(" .. self:_transNode(op.children[1])
+
+  for _, fld in ipairs(table.pack(table.unpack(op.children, 2))) do
+    if fld.type then
+      code = code .. string.format(
+        ', {name: [%s], visib: "%s", assign: "%s", value: %s, type: "%s"}',
+        table.concat(tablex.map(function(name) return string.format('"%s"', name) end, fld.name), ", "),
+        op.visib,
+        fld.assign or "=",
+        fld.value and self:transform(fld.value) or fld.name,
+        fld.type
+      )
+    else
+      code = code .. string.format(
+        ', {name: "%s", visib: "%s", assign: "%s", value: %s}',
+        fld.name,
+        op.visib,
+        fld.assign or "=",
+        fld.value and self:transform(fld.value) or fld.name
+      )
+    end
+  end
+
+  code = code .. ")"
 
   --(2) return
   return code

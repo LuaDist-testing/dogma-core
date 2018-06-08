@@ -46,6 +46,12 @@ return suite("dogma.syn.ExpParser", function()
         assert(tostring(exp)):eq("(+ x (if (== x true) (+ a b) (+ c d)))")
       end)
 
+      test("if Exp then Exp end", function()
+        parser:parse("x + if x == true then a+b end")
+        exp = parser:next()
+        assert(tostring(exp)):eq("(+ x (if (== x true) (+ a b) nil))")
+      end)
+
       test("if Exp else Exp - error - then expected", function()
         parser:parse("x + if a else b")
         assert(function() parser:nextExp() end):raises("'then' expected on (1, 10).")
@@ -87,6 +93,32 @@ return suite("dogma.syn.ExpParser", function()
     end)
 
     suite("fn", function()
+      test("x + fn{Exp}", function()
+        parser:parse("x + fn{1+2}")
+
+        exp = parser:next()
+        assert(exp):isTable():has({
+          line = 1,
+          col = 1,
+          type = SentType.EXP
+        })
+        assert(exp.tree.root):isNotNil()
+        assert(tostring(exp)):eq("(+ x fn(){(+ 1 2)})")
+      end)
+
+      test("x + fn{}", function()
+        parser:parse("x + fn{}")
+
+        exp = parser:next()
+        assert(exp):isTable():has({
+          line = 1,
+          col = 1,
+          type = SentType.EXP
+        })
+        assert(exp.tree.root):isNotNil()
+        assert(tostring(exp)):eq("(+ x fn(){})")
+      end)
+
       test("x + fn() = Exp end", function()
         parser:parse("x + fn() = 1+2 end")
 
@@ -140,6 +172,18 @@ return suite("dogma.syn.ExpParser", function()
     suite("list", function()
       test("x + []", function()
         parser:parse("x + []")
+        exp = parser:next()
+        assert(exp):isTable():has({
+          line = 1,
+          col = 1,
+          type = SentType.EXP
+        })
+        assert(exp.tree.root):isNotNil()
+        assert(tostring(exp)):eq("(+ x [])")
+      end)
+
+      test("x + [\\n]", function()
+        parser:parse("x + [\n]")
         exp = parser:next()
         assert(exp):isTable():has({
           line = 1,
@@ -251,6 +295,21 @@ return suite("dogma.syn.ExpParser", function()
         assert(parser:next()):isNil()
       end)
 
+      test("x + {\\n}", function()
+        parser:parse("x + {\n}")
+
+        exp = parser:next()
+        assert(exp):isTable():has({
+          line = 1,
+          col = 1,
+          type = SentType.EXP
+        })
+        assert(exp.tree.root):isNotNil()
+
+        assert(tostring(exp)):eq("(+ x {})")
+        assert(parser:next()):isNil()
+      end)
+
       test("x + {name}", function()
         parser:parse("x + {variable}")
         exp = parser:next()
@@ -273,6 +332,18 @@ return suite("dogma.syn.ExpParser", function()
         })
         assert(exp.tree.root):isNotNil()
         assert(tostring(exp)):eq("(+ x {fld = (. obj fld)})")
+      end)
+
+      test("x + {{keyword} = obj}", function()
+        parser:parse("x + {{then} = obj}")
+        exp = parser:next()
+        assert(exp):isTable():has({
+          line = 1,
+          col = 1,
+          type = SentType.EXP
+        })
+        assert(exp.tree.root):isNotNil()
+        assert(tostring(exp)):eq("(+ x {then = (. obj then)})")
       end)
 
       test("x + {one = 1}", function()
@@ -299,8 +370,8 @@ return suite("dogma.syn.ExpParser", function()
         assert(tostring(exp)):eq("(+ x {one = 1})")
       end)
 
-      test("x + {one = 1, two = 2}", function()
-        parser:parse("x + {one = 1, two = 2}")
+      test("x + {name = 1, keyword = 2}", function()
+        parser:parse("x + {name = 1, then = 2}")
         exp = parser:next()
         assert(exp):isTable():has({
           line = 1,
@@ -308,7 +379,7 @@ return suite("dogma.syn.ExpParser", function()
           type = SentType.EXP
         })
         assert(exp.tree.root):isNotNil()
-        assert(tostring(exp)):eq("(+ x {one = 1, two = 2})")
+        assert(tostring(exp)):eq("(+ x {name = 1, then = 2})")
       end)
 
       test("x + {\\none = 1\\ntwo = 2\\n}", function()
@@ -368,6 +439,16 @@ return suite("dogma.syn.ExpParser", function()
     test("...", function()
       parser:parse("...args")
       assert(tostring(parser:next())):eq("(... args)")
+    end)
+
+    test("<<< list", function()
+      parser:parse("<<< list")
+      assert(tostring(parser:next())):eq("(<<< list)")
+    end)
+
+    test(">>> list", function()
+      parser:parse(">>> list")
+      assert(tostring(parser:next())):eq("(>>> list)")
     end)
 
     suite("+", function()
@@ -436,6 +517,16 @@ return suite("dogma.syn.ExpParser", function()
   -- bin op --
   ------------
   suite("bin op", function()
+    test("list <<< item", function()
+      parser:parse("list <<< item")
+      assert(tostring(parser:next())):eq("(<<< list item)")
+    end)
+
+    test("stack >>> item", function()
+      parser:parse("item >>> list")
+      assert(tostring(parser:next())):eq("(>>> item list)")
+    end)
+
     test("x == 123", function()
       parser:parse("x == 123")
       assert(tostring(parser:next())):eq("(== x 123)")
@@ -801,6 +892,21 @@ return suite("dogma.syn.ExpParser", function()
     end)
   end)
 
+  -----------
+  -- iif() --
+  -----------
+  suite("iif()", function()
+    test("iif(Exp, Exp)", function()
+      parser:parse("iif(123+456, abc+def)")
+      assert(tostring(parser:next())):eq("(iif (+ 123 456) (+ abc def) nil)")
+    end)
+
+    test("iif(Exp, Exp, Exp)", function()
+      parser:parse("iif(123+456, abc+def, 135+246)")
+      assert(tostring(parser:next())):eq("(iif (+ 123 456) (+ abc def) (+ 135 246))")
+    end)
+  end):tags("iif")
+
   --------------
   -- native() --
   --------------
@@ -819,12 +925,26 @@ return suite("dogma.syn.ExpParser", function()
   -------------
   -- await() --
   -------------
-  suite("await()", function()
-    test("await(Exp)", function()
-      parser:parse("await(1+2)")
-      assert(tostring(parser:next())):eq("(await (+ 1 2))")
-    end)
+  test("await(Exp)", function()
+    parser:parse("await(1+2)")
+    assert(tostring(parser:next())):eq("(await (+ 1 2))")
   end):tags("await")
+
+  -------------
+  -- await() --
+  -------------
+  test("pawait(Exp)", function()
+    parser:parse("pawait(1+2)")
+    assert(tostring(parser:next())):eq("(pawait (+ 1 2))")
+  end):tags("pawait")
+
+  -------------
+  -- use() --
+  -------------
+  test("use(Exp)", function()
+    parser:parse("use(path)")
+    assert(tostring(parser:next())):eq("(use path)")
+  end):tags("use")
 
   -------------
   -- peval() --
@@ -882,17 +1002,27 @@ return suite("dogma.syn.ExpParser", function()
 
     test("exp{*,name}", function()
       parser:parse("obj{*,field}")
-      assert(function() parser:next() end):raises("'}' expected on (1, 6).")
+      assert(function() parser:next() end):raises("'=' expected on (1, 12).")
+    end)
+
+    test("exp{*,name=value,keyword=value}", function()
+      parser:parse("obj{*,name=12,then=34}")
+      assert(tostring(parser:next())):eq("(pack obj .* .name=12 .then=34)")
     end)
 
     test("exp{name,*}", function()
       parser:parse("obj{field,*}")
-      assert(function() parser:next() end):raises("on (1,11), '%*' only allowed when '{%*}'.")
+      assert(function() parser:next() end):raises("on (1,11), '%*' only allowed as first item.")
     end)
 
     test("exp{name}", function()
       parser:parse("obj{name}")
       assert(tostring(parser:next())):eq("(pack obj .name)")
+    end)
+
+    test("exp{name,name=value}", function()
+      parser:parse("obj{name,name2=123}")
+      assert(tostring(parser:next())):eq("(pack obj .name .name2=123)")
     end)
 
     test("exp{.name}", function()
@@ -910,4 +1040,91 @@ return suite("dogma.syn.ExpParser", function()
       assert(tostring(parser:next())):eq("(pack obj .one .two :three)")
     end)
   end):tags("pack")
+
+  ------------
+  -- update --
+  ------------
+  suite("update", function()
+    suite("exp.{}", function()
+      test(".{name}", function()
+        parser:parse(".{name}")
+        assert(function() parser:next() end):raises("on (1,1), '.{' and ':{' are not unary ops.")
+      end)
+
+      test("obj.{}", function()
+        parser:parse("obj.{}")
+        assert(function() parser:next() end):raises("on (1, 6), id expected.")
+      end)
+
+      test("obj.{\\n}", function()
+        parser:parse("obj.{\n}")
+        assert(function() parser:next() end):raises("on (2, 1), id expected.")
+      end)
+
+      test("obj.{name}", function()
+        parser:parse("obj.{name}")
+        assert(tostring(parser:next())):eq("(update obj .name)")
+      end)
+
+      test("obj:{name}", function()
+        parser:parse("obj:{name}")
+        assert(tostring(parser:next())):eq("(update obj :name)")
+      end)
+
+      test("obj.{name=value}", function()
+        parser:parse("obj.{name=1+2}")
+        assert(tostring(parser:next())):eq("(update obj .name=(+ 1 2))")
+      end)
+
+      test("obj.{name:=value}", function()
+        parser:parse("obj.{name:=1+2}")
+        assert(tostring(parser:next())):eq("(update obj .name:=(+ 1 2))")
+      end)
+
+      test("obj.{name.=value}", function()
+        parser:parse("obj.{name.=1+2}")
+        assert(tostring(parser:next())):eq("(update obj .name.=(+ 1 2))")
+      end)
+
+      test("obj.{name?=value}", function()
+        parser:parse("obj.{name?=1+2}")
+        assert(tostring(parser:next())):eq("(update obj .name?=(+ 1 2))")
+      end)
+
+      test("obj.{{name}=value}", function()
+        parser:parse("obj.{{name}=1+2}")
+        assert(tostring(parser:next())):eq("(update obj {.name}=(+ 1 2))")
+      end)
+
+      test("obj.{{name1, name2}=value}", function()
+        parser:parse("obj.{{name1, name2}=1+2}")
+        assert(tostring(parser:next())):eq("(update obj {.name1}=(+ 1 2) {.name2}=(+ 1 2))")
+      end)
+
+      test("obj.{(name)=value}", function()
+        parser:parse("obj.{(name)=1+2}")
+        assert(tostring(parser:next())):eq("(update obj (.name)=(+ 1 2))")
+      end)
+
+      test("obj.{(name1, name2)=value}", function()
+        parser:parse("obj.{(name1, name2)=1+2}")
+        assert(tostring(parser:next())):eq("(update obj (.name1)=(+ 1 2) (.name2)=(+ 1 2))")
+      end)
+
+      test("obj.{one, two=1+2, three:=3+4, four?=5+6}", function()
+        parser:parse("obj.{one, two=1+2, three:=3+4, four?=5+6}")
+        assert(tostring(parser:next())):eq("(update obj .one .two=(+ 1 2) .three:=(+ 3 4) .four?=(+ 5 6))")
+      end)
+
+      test("obj.{one;two}", function()
+        parser:parse("obj.{one;two}")
+        assert(function() parser:next() end):raises("on (1,9), ',' or '}' expected.")
+      end)
+
+      test("obj.{\\none\\ntwo}", function()
+        parser:parse("obj.{\none\ntwo}")
+        assert(tostring(parser:next())):eq("(update obj .one .two)")
+      end)
+    end)
+  end):tags("update")
 end):tags("exp")

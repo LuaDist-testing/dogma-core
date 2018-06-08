@@ -22,27 +22,11 @@ end
 --@return Unpack
 function UnpackParser:next()
   local lex, parser = self._.lexer, self._.parser
-  local tok, ln, col, visib, def, typ, vars, assign, exp
+  local tok, ln, col, typ, vars, assign, exp
 
-  --(1) read visibility if needed
-  tok = lex:advance()
-  ln, col = tok.line, tok.col
-
-  if tok.type == TokenType.KEYWORD and (tok.value == "export" or tok.value == "pub") then
-    lex:next()
-    visib = tok.value
-  end
-
-  --(2) get type definition
-  tok = lex:advance()
-
-  if tok.type == TokenType.KEYWORD and (tok.value == "var" or tok.value == "const") then
-    lex:next()
-    def = tok.value
-  end
-
-  --(3) get type
+  --(1) read type
   tok = lex:next()
+  ln, col = tok.line, tok.col
 
   if tok.type == TokenType.SYMBOL and tok.value == "[" then
     typ = "[]"
@@ -50,7 +34,7 @@ function UnpackParser:next()
     typ = "{}"
   end
 
-  --(4) get vars
+  --(2) get vars
   vars = {}
 
   while true do
@@ -72,7 +56,7 @@ function UnpackParser:next()
     end
 
     --name, name=val, name{...}
-    name = lex:next(TokenType.NAME).value
+    name = lex:nextId().value
 
     tok = lex:advance()
     if tok.type == TokenType.SYMBOL and tok.value == "{" then
@@ -92,7 +76,7 @@ function UnpackParser:next()
             fmod = "."
           end
 
-          table.insert(vars, DataAccess.new(visib, name .. fmod .. lex:next(TokenType.NAME).value))
+          table.insert(vars, DataAccess.new(nil, name .. fmod .. lex:nextId().value))
 
           tok = lex:advance()
           if not (tok.type == TokenType.SYMBOL and tok.value == ",") then
@@ -110,7 +94,7 @@ function UnpackParser:next()
 
         if tok.type == TokenType.SYMBOL and (tok.value == "." or tok.value == ":") then
           lex:next()
-          name = name .. tok.value .. lex:next(TokenType.NAME).value
+          name = name .. tok.value .. lex:nextId().value
         else
           break
         end
@@ -144,8 +128,9 @@ function UnpackParser:next()
     lex:next(TokenType.SYMBOL, ",")
   end
 
-  --(5) expression
+  --(3) expression
   tok = lex:advance()
+
   if typ == "[]" then
     if not (tok.type == TokenType.SYMBOL and (tok.value == "=" or tok.value == ".=" or tok.value == ":=" or tok.value == "?=")) then
       error(string.format("on (%s,%s), '=', '.=', ':=' or '?=' expected.", tok.line, tok.col))
@@ -162,5 +147,5 @@ function UnpackParser:next()
   lex:next(TokenType.EOL)
 
   --(6) return
-  return Unpack.new(ln, col, visib, def, typ, vars, assign, exp)
+  return Unpack.new(ln, col, typ, vars, assign, exp)
 end

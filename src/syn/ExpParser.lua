@@ -21,6 +21,11 @@ local ThrowFn = require("dogma.syn._.ThrowFn")
 local ReturnStmt = require("dogma.syn._.ReturnStmt")
 local PackOp = require("dogma.syn._.PackOp")
 local AwaitFn = require("dogma.syn._.AwaitFn")
+local PawaitFn = require("dogma.syn._.PawaitFn")
+local UseFn = require("dogma.syn._.UseFn")
+local IifFn = require("dogma.syn._.IifFn")
+local UpdateOp = require("dogma.syn._.UpdateOp")
+local Params = require("dogma.syn._.Params")
 
 --An expression parser.
 local ExpParser = {}
@@ -96,10 +101,19 @@ function ExpParser:_readExp()
       end
     elseif tok.type == TokenType.SYMBOL and tok.value == "{" then
       lex:unshift()
+
       if exp.tree:isWellFormed() then
         self:_readPackOp(exp)
       else
         exp:insert(self:_readLiteralMap())
+      end
+    elseif tok.type == TokenType.SYMBOL and (tok.value == "." or tok.value == ":") and lex:advance().type == TokenType.SYMBOL and lex:advance().value == "{" then
+      lex:unshift() --the dot
+
+      if exp.tree:isWellFormed() then
+        self:_readUpdateOp(exp)
+      else
+        error(string.format("on (%s,%s), '.{' and ':{' are not unary ops.", tok.line, tok.col))
       end
     elseif tok.type == TokenType.KEYWORD and tok.value == "await" then
       lex:unshift()
@@ -110,15 +124,24 @@ function ExpParser:_readExp()
     elseif tok.type == TokenType.KEYWORD and tok.value == "if" then
       lex:unshift()
       exp:insert(self:_readIfSubExp())
+    elseif tok.type == TokenType.KEYWORD and tok.value == "iif" then
+      lex:unshift()
+      exp:insert(self:_readIif())
     elseif tok.type == TokenType.KEYWORD and tok.value == "native" then
       lex:unshift()
       exp:insert(self:_readNative())
+    elseif tok.type == TokenType.KEYWORD and tok.value == "pawait" then
+      lex:unshift()
+      exp:insert(self:_readPawait())
     elseif tok.type == TokenType.KEYWORD and tok.value == "peval" then
       lex:unshift()
       exp:insert(self:_readPeval())
     elseif tok.type == TokenType.KEYWORD and tok.value == "throw" then
       lex:unshift()
       exp:insert(self:_readThrow())
+    elseif tok.type == TokenType.KEYWORD and tok.value == "use" then
+      lex:unshift()
+      exp:insert(self:_readUse())
     else
       if tok.type == TokenType.KEYWORD and tok.value == "not" then
         local aux = lex:advance()
@@ -141,7 +164,7 @@ function ExpParser:_readExp()
         else
           node = self:_getNodeOf(tok)
         end
-      elseif tok.type == TokenType.SYMBOL and (tok.value == "+" or tok.value == "-") then
+      elseif tok.type == TokenType.SYMBOL and tablex.find({"+", "-", "<<<", ">>>"}, tok.value) then
         if exp.tree:isWellFormed() then
           node = BinOp.new(tok)
         else
@@ -226,7 +249,7 @@ function ExpParser:_getNodeOf(tok)
     elseif tablex.find({
                           "+=", "-=", "*", "*=", "**", "**=", "/", "/=", "%", "%=",
                           "=", ".=", ":=", "?=", "==", "===", "=~", "!=", "!==", "!~",
-                          "<", "<<", "<<=", "<=", ">", ">>", ">>=", ">=",
+                          "<", "<<", "<<<", "<<=", "<=", ">", ">>", ">>>", ">>=", ">=",
                           "^", "^=", ".", "?", ":", "&", "&=", "&&", "|", "|=", "||"
                        }, sym) then
       node = BinOp.new(tok)
@@ -267,12 +290,42 @@ function ExpParser:_readIfSubExp()
   cond = self:_readExp()
   lex:next(TokenType.KEYWORD, "then")
   tcase = self:_readExp()
-  lex:next(TokenType.KEYWORD, "else")
-  fcase = self:_readExp()
+
+  tok = lex:advance()
+  if tok.type == TokenType.KEYWORD and tok.value == "else" then
+    lex:next(TokenType.KEYWORD, "else")
+    fcase = self:_readExp()
+  end
+
   lex:next(TokenType.KEYWORD, "end")
 
   --(2) return
   return IfSubExp.new(ln, col, cond, tcase, fcase)
+end
+
+--Read an iif() terminal.
+--
+--@return IifFn
+function ExpParser:_readIif()
+  local lex = self._.lexer
+  local tok, ln, col, cond, onTrue, onFalse
+
+  --(1) read
+  tok = lex:next(TokenType.KEYWORD, "iif")
+  ln, col = tok.line, tok.col
+  lex:next(TokenType.SYMBOL, "(")
+  cond = self:_readExp()
+  lex:next(TokenType.SYMBOL, ",")
+  onTrue = self:_readExp()
+  tok = lex:advance()
+  if tok.type == TokenType.SYMBOL and tok.value == "," then
+    lex:next(TokenType.SYMBOL, ",")
+    onFalse = self:_readExp()
+  end
+  lex:next(TokenType.SYMBOL, ")")
+
+  --(2) return
+  return IifFn.new(ln, col, cond, onTrue, onFalse)
 end
 
 --Read a native(code) terminal.
@@ -309,6 +362,44 @@ function ExpParser:_readAwait()
 
   --(2) return
   return AwaitFn.new(ln, col, exp)
+end
+
+--Read a pawait(Exp) terminal.
+--
+--@return PawaitFn
+function ExpParser:_readPawait()
+  local lex = self._.lexer
+  local tok, ln, col, exp
+
+  --(1) read
+  tok = lex:next(TokenType.KEYWORD, "pawait")
+  ln, col = tok.line, tok.col
+  lex:next(TokenType.SYMBOL, "(")
+  self:_nextEols()
+  exp = self:_readExp()
+  self:_nextEols()
+  lex:next(TokenType.SYMBOL, ")")
+
+  --(2) return
+  return PawaitFn.new(ln, col, exp)
+end
+
+--Read a use(Exp) terminal.
+--
+--@return UseFn
+function ExpParser:_readUse()
+  local lex = self._.lexer
+  local tok, ln, col, exp
+
+  --(1) read
+  tok = lex:next(TokenType.KEYWORD, "use")
+  ln, col = tok.line, tok.col
+  lex:next(TokenType.SYMBOL, "(")
+  exp = self:_readExp()
+  lex:next(TokenType.SYMBOL, ")")
+
+  --(2) return
+  return UseFn.new(ln, col, exp)
 end
 
 --Read a peval(Exp) terminal.
@@ -453,6 +544,16 @@ function ExpParser:_readLiteralList()
     end
 
     while true do
+      --skip ends of line
+      if sep == "\n" then
+        self:_nextEols()
+
+        tok = lex:advance()
+        if tok.type == TokenType.SYMBOL and tok.value == "]" then
+          break
+        end
+      end
+
       table.insert(items, self:_readExp())
 
       if sep == "," then
@@ -461,13 +562,6 @@ function ExpParser:_readLiteralList()
         if tok.type == TokenType.SYMBOL and tok.value == "," then
           lex:next()
         else
-          break
-        end
-      else
-        lex:next(TokenType.EOL)
-
-        tok = lex:advance()
-        if tok.type == TokenType.SYMBOL and tok.value == "]" then
           break
         end
       end
@@ -511,6 +605,11 @@ function ExpParser:_readLiteralMap()
       --skip ends of line
       if sep == "\n" then
         self:_nextEols()
+
+        tok = lex:advance()
+        if tok.type == TokenType.SYMBOL and tok.value == "}" then
+          break
+        end
       end
 
       --read item
@@ -518,11 +617,11 @@ function ExpParser:_readLiteralMap()
 
       if tok.type == TokenType.SYMBOL and tok.value == "{" then
         lex:next(TokenType.SYMBOL, "{")
-        name = lex:next(TokenType.NAME).value
+        name = lex:nextId().value
         brackets = true
         lex:next(TokenType.SYMBOL, "}")
       else
-        name = lex:next(TokenType.NAME).value
+        name = lex:nextId().value
         brackets = false
       end
 
@@ -551,13 +650,6 @@ function ExpParser:_readLiteralMap()
         else
           break
         end
-      else
-        self:_nextEols()
-
-        tok = lex:advance()
-        if tok.type == TokenType.SYMBOL and tok.value == "}" then
-          break
-        end
       end
     end
   end
@@ -579,18 +671,33 @@ function ExpParser:_readFn()
   tok = lex:next(TokenType.KEYWORD, "fn")
   ln, col = tok.line, tok.col
 
-  params = stmt:_readFnParams()
-  rvar = stmt:_readFnReturnVar()
-  rtype = stmt:_readFnType()
-
   tok = lex:advance()
-  if tok.type == TokenType.SYMBOL and tok.value == "=" then
-    lex:next()
-    body = self:_readExp()
-    body = {ReturnStmt.new(body.ln, body.col, body)}
-    lex:next(TokenType.KEYWORD, "end")
+  if tok.type == TokenType.SYMBOL and tok.value == "{" then
+    lex:nextSymbol("{")
+    params = Params.new()
+
+    tok = lex:advance()
+    if tok.type == TokenType.SYMBOL and tok.value == "}" then
+      body = {}
+    else
+      body = {self:_readExp()}
+    end
+    
+    lex:nextSymbol("}")
   else
-    body = stmt:_readBody(3)
+    params = stmt:_readFnParams()
+    rvar = stmt:_readFnReturnVar()
+    rtype = stmt:_readFnType()
+
+    tok = lex:advance()
+    if tok.type == TokenType.SYMBOL and tok.value == "=" then
+      lex:next()
+      body = self:_readExp()
+      body = {ReturnStmt.new(body.ln, body.col, body)}
+      lex:next(TokenType.KEYWORD, "end")
+    else
+      body = stmt:_readBody(3)
+    end
   end
 
   --(2) return
@@ -653,20 +760,23 @@ function ExpParser:_readPackOp(exp)
   --(3) read fields
   tok = lex:advance()
   if not (tok.type == TokenType.SYMBOL and tok.value == "}") then
-    while true do
-      local visib, name
+    local all = false
 
-      --name, .name or :name
+    while true do
+      local visib, name, value
+
+      --read
       tok = lex:advance()
 
       if tok.type == TokenType.SYMBOL and tok.value == "*" then
         if #op.children > 1 then
-          error(string.format("on (%s,%s), '*' only allowed when '{*}'.", tok.line, tok.col))
+          error(string.format("on (%s,%s), '*' only allowed as first item.", tok.line, tok.col))
         end
 
         lex:next()
         visib = "."
         name = "*"
+        all = true
       elseif tok.type == TokenType.SYMBOL and (tok.value == "." or tok.value == ":") then
         lex:next()
         visib = tok.value
@@ -676,28 +786,137 @@ function ExpParser:_readPackOp(exp)
         name = ""
       end
 
+      value = nil
+
       if name ~= "*" then
-        name = lex:next(TokenType.NAME).value
+        name = lex:nextId().value
+
+        if all then
+          lex:next(TokenType.SYMBOL, "=")
+          value = self:_readExp()
+        else
+          tok = lex:advance()
+
+          if tok.type == TokenType.SYMBOL and tok.value == "=" then
+            lex:next()
+            value = self:_readExp()
+          end
+        end
       end
 
-      table.insert(op.children, {visib = visib, name = name})
+      table.insert(op.children, {visib = visib, name = name, value = value})
 
       --end?
-      if name == "*" then
+      tok = lex:advance()
+
+      if tok.type == TokenType.SYMBOL and tok.value == "}" then
         break
-      else
-        tok = lex:advance()
-
-        if tok.type == TokenType.SYMBOL and tok.value == "}" then
-          break
-        end
-
-        lex:next(TokenType.SYMBOL, ",")
       end
+
+      lex:next(TokenType.SYMBOL, ",")
     end
   end
 
   --(4) read }
   lex:next(TokenType.SYMBOL, "}")
+  op.finished = true
+end
+
+--Read an update op: Exp.{} or Exp:{}.
+function ExpParser:_readUpdateOp(exp)
+  local lex = self._.lexer
+  local tok, op, sep
+
+  --(1) read .{ or :{
+  tok = lex:next()
+
+  if tok.value == "." then
+    tok.value = ".{}"
+    op = UpdateOp.new(tok, ".")
+  else
+    tok.value = ".{}"
+    op = UpdateOp.new(tok, ":")
+  end
+
+  lex:nextSymbol("{")
+
+  --(2) insert op in exp
+  exp:insert(op)
+
+  --(3) read separator
+  tok = lex:advance()
+
+  if tok.type == TokenType.EOL then
+    lex:next()
+    sep = "\n"
+  else
+    sep = ","
+  end
+
+  --(4) read fields
+  while true do
+    local name, type, value, assign
+
+    --id, {id...} or (id...)
+    tok = lex:advance()
+
+    if tok.type == TokenType.SYMBOL and (tok.value == "{" or tok.value == "(") then
+      type = (tok.value == "{" and "mapped" or "extended")
+      lex:next()
+      name = {}
+
+      while true do
+        table.insert(name, lex:nextId().value)
+
+        tok = lex:advance()
+        if tok.type == TokenType.SYMBOL and tok.value == "," then
+          lex:next()
+        else
+          break
+        end
+      end
+
+      lex:nextSymbol(type == "mapped" and "}" or ")")
+    else
+      type = nil
+      name = lex:nextId().value
+    end
+
+    --=, :=, .=, ?=
+    tok = lex:advance()
+
+    if tok.type == TokenType.SYMBOL and tablex.find({"=", ":=", ".=", "?="}, tok.value) then
+      lex:next()
+      assign = tok.value
+      value = self:_readExp()
+    else
+      value, assign = nil, nil
+    end
+
+    --add field
+    table.insert(op.children, {name = name, type = type, assign = assign, value = value})
+
+    --end or next?
+    if sep == "," then
+      tok = lex:advance()
+
+      if tok.type == TokenType.SYMBOL and tok.value == "," then
+        lex:next()
+      elseif tok.type == TokenType.SYMBOL and tok.value == "}" then
+        break
+      else
+        error(string.format("on (%s,%s), ',' or '}' expected.", tok.line, tok.col))
+      end
+    else
+      self:_nextEols()
+      tok = lex:advance()
+      if tok.type == TokenType.SYMBOL and tok.value == "}" then
+        break
+      end
+    end
+  end
+
+  --(5) read }
+  lex:nextSymbol("}")
   op.finished = true
 end

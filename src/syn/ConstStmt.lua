@@ -13,22 +13,15 @@ package.loaded[...] = ConstStmt
 --@param ln:number    Line number.
 --@param col:number   Column number.
 --@param visib:string Visibility: export or pub.
-function ConstStmt.new(ln, col, visib)
+--@param decls:list   Declarations.
+function ConstStmt.new(ln, col, visib, decls)
   local self
 
   --(1) create
   self = setmetatable(Stmt.new(StmtType.CONST, ln, col), ConstStmt)
-  self.vars = {}
+  self.decls = decls
   self.visib = visib
 
   --(2) return
   return self
-end
-
---Add a variable declaration.
---
---@param name:string  Variable name.
---@param val?:Exp     Default value.
-function ConstStmt:insert(name, val)
-  table.insert(self.vars, {name = name, value = val})
 end

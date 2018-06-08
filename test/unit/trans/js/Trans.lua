@@ -24,7 +24,7 @@ return suite("dogma.trans.js.Trans", function()
     test("importing", function()
       parser:parse("var [x, y] = 1+2")
       assert(trans:next({importDogmalang = true})):eq([[
-import {any, bool, datetime, func, list, map, num, promise, proxy, text, abstract, coalesce, dogma, echo, echof, exec, expect, fmt, keys, len, print, printf, todo, typename} from "dogmalang";
+import {any, bool, datetime, func, list, map, num, promise, proxy, text, abstract, coalesce, dogma, echo, echof, exec, expect, fmt, keys, len, print, printf, todo, typename, values} from "dogmalang";
 let [x, y] = dogma.getArrayToUnpack((1+2), 2);
 ]])
     end)
@@ -36,7 +36,7 @@ var [x, y] = 1+2
 ]])
       assert(trans:next({importDogmalang = true})):eq([[
 #!/usr/bin/env node
-import {any, bool, datetime, func, list, map, num, promise, proxy, text, abstract, coalesce, dogma, echo, echof, exec, expect, fmt, keys, len, print, printf, todo, typename} from "dogmalang";
+import {any, bool, datetime, func, list, map, num, promise, proxy, text, abstract, coalesce, dogma, echo, echof, exec, expect, fmt, keys, len, print, printf, todo, typename, values} from "dogmalang";
 let [x, y] = dogma.getArrayToUnpack((1+2), 2);
 ]])
     end)

@@ -44,6 +44,7 @@ function Keyword.isKeyword(id)
     ["for"] = true,
     ["from"] = true,
     ["if"] = true,
+    ["iif"] = true,
     ["impl"] = true,
     ["in"] = true,
     ["is"] = true,
@@ -55,6 +56,7 @@ function Keyword.isKeyword(id)
     ["not"] = true,
     ["op"] = true,
     ["or"] = true,
+    ["pawait"] = true,
     ["peval"] = true,
     ["pub"] = true,
     ["pvt"] = true, --private

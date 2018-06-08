@@ -22,36 +22,6 @@ return suite("dogma.trans.js._.StmtTrans", function()
   -- list --
   ----------
   suite("list", function()
-    test("var [Name, Name] = Exp", function()
-      parser:parse("var [x, y] = 1+2")
-      assert(trans:next()):eq("let [x, y] = dogma.getArrayToUnpack((1+2), 2);\n")
-    end)
-
-    test("export var [Name, Name] = Exp", function()
-      parser:parse("export var [x, y] = 1+2")
-      assert(trans:next()):eq("export default let [x, y] = dogma.getArrayToUnpack((1+2), 2);\n")
-    end)
-
-    test("pub var [Name, Name] = Exp", function()
-      parser:parse("pub var [x, y] = 1+2")
-      assert(trans:next()):eq("export let [x, y] = dogma.getArrayToUnpack((1+2), 2);\n")
-    end)
-
-    test("const [Name, Name] = Exp", function()
-      parser:parse("const [x, y] = 1+2")
-      assert(trans:next()):eq("const [x, y] = dogma.getArrayToUnpack((1+2), 2);\n")
-    end)
-
-    test("export const [Name, Name] = Exp", function()
-      parser:parse("export const [x, y] = 1+2")
-      assert(trans:next()):eq("export default const [x, y] = dogma.getArrayToUnpack((1+2), 2);\n")
-    end)
-
-    test("pub const [Name, Name] = Exp", function()
-      parser:parse("pub const [x, y] = 1+2")
-      assert(trans:next()):eq("export const [x, y] = dogma.getArrayToUnpack((1+2), 2);\n")
-    end)
-
     test("[Name] = Exp", function()
       parser:parse("[x] = 1+2")
       assert(trans:next()):eq("[x] = dogma.getArrayToUnpack((1+2), 1);\n")
@@ -115,36 +85,6 @@ return suite("dogma.trans.js._.StmtTrans", function()
   -- map --
   ---------
   suite("map", function()
-    test("export var {Name} = Exp", function()
-      parser:parse("export var {x} = 1+2")
-      assert(trans:next()):eq("export default let {x} = (1+2);\n")
-    end)
-
-    test("pub var {Name} = Exp", function()
-      parser:parse("pub var {x} = 1+2")
-      assert(trans:next()):eq("export let {x} = (1+2);\n")
-    end)
-
-    test("var {Name} = Exp", function()
-      parser:parse("var {x} = 1+2")
-      assert(trans:next()):eq("let {x} = (1+2);\n")
-    end)
-
-    test("export const {Name} = Exp", function()
-      parser:parse("export const {x} = 1+2")
-      assert(trans:next()):eq("export default const {x} = (1+2);\n")
-    end)
-
-    test("pub const {Name} = Exp", function()
-      parser:parse("pub const {x} = 1+2")
-      assert(trans:next()):eq("export const {x} = (1+2);\n")
-    end)
-
-    test("const {Name} = Exp", function()
-      parser:parse("const {x} = 1+2")
-      assert(trans:next()):eq("const {x} = (1+2);\n")
-    end)
-
     test("{Name} = Exp", function()
       parser:parse("{x} = 1+2")
       assert(trans:next()):eq("({x: x} = (1+2));\n")

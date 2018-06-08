@@ -17,5 +17,5 @@ function Eol.new(ln, col)
 end
 
 function Eol:__tostring()
-  return "<eol/>"
+  return string.format("<eol line=%s col=%s />", self.line, self.col)
 end

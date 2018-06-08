@@ -24,22 +24,22 @@ return suite("dogma.trans.js._.StmtTrans", function()
   suite("use", function()
     test("use LiteralStr", function()
       parser:parse('use "my/module"')
-      assert(trans:next()):eq('const module = require("my/module").default || require("my/module");\n')
+      assert(trans:next()):eq('const module = dogma.use(require("my/module"));\n')
     end)
 
     test("use LiteralStr as Name", function()
       parser:parse('use "my/module" as mod')
-      assert(trans:next()):eq('const mod = require("my/module").default || require("my/module");\n')
+      assert(trans:next()):eq('const mod = dogma.use(require("my/module"));\n')
     end)
 
     test("use LiteralStr, LiteralStr", function()
       parser:parse('use "my/mod1", "my/mod2"')
-      assert(trans:next()):eq('const mod1 = require("my/mod1").default || require("my/mod1");const mod2 = require("my/mod2").default || require("my/mod2");\n')
+      assert(trans:next()):eq('const mod1 = dogma.use(require("my/mod1"));const mod2 = dogma.use(require("my/mod2"));\n')
     end)
 
     test("use LiteralStr as Name, LiteralStr as Name", function()
       parser:parse('use "my/module1" as mod1, "my/module2" as mod2')
-      assert(trans:next()):eq('const mod1 = require("my/module1").default || require("my/module1");const mod2 = require("my/module2").default || require("my/module2");\n')
+      assert(trans:next()):eq('const mod1 = dogma.use(require("my/module1"));const mod2 = dogma.use(require("my/module2"));\n')
     end)
   end):tags("use")
 
@@ -96,6 +96,10 @@ export default class Color {
     Object.defineProperty(this, "name", {value: name, enum: true});
     Object.defineProperty(this, "value", {value: val, enum: true});
   }
+
+  toString() {
+    return this.name;
+  }
 }
 Object.defineProperty(Color, "RED", {value: new Color("RED", 1), enum: true});
 
@@ -110,6 +114,10 @@ export class Color {
     Object.defineProperty(this, "name", {value: name, enum: true});
     Object.defineProperty(this, "value", {value: val, enum: true});
   }
+
+  toString() {
+    return this.name;
+  }
 }
 Object.defineProperty(Color, "RED", {value: new Color("RED", 1), enum: true});
 
@@ -123,6 +131,10 @@ class Color {
   constructor(name, val) {
     Object.defineProperty(this, "name", {value: name, enum: true});
     Object.defineProperty(this, "value", {value: val, enum: true});
+  }
+
+  toString() {
+    return this.name;
   }
 }
 Object.defineProperty(Color, "RED", {value: new Color("RED", 1), enum: true});
@@ -139,6 +151,10 @@ class Color {
   constructor(name, val) {
     Object.defineProperty(this, "name", {value: name, enum: true});
     Object.defineProperty(this, "value", {value: val, enum: true});
+  }
+
+  toString() {
+    return this.name;
   }
 }
 Object.defineProperty(Color, "RED", {value: new Color("RED", "1"), enum: true});
@@ -178,41 +194,87 @@ Object.defineProperty(Color, "BLUE", {value: new Color("BLUE", "3"), enum: true}
   -- var --
   ---------
   suite("var", function()
-    test("export var Name = Exp", function()
-      parser:parse("export var x = 3")
-      assert(trans:next()):eq("var x = 3;export default x;\n")
+    suite("std", function()
+      test("export var Name = Exp", function()
+        parser:parse("export var x = 3")
+        assert(trans:next()):eq("var x = 3;export default x;\n")
+      end)
+
+      test("pub var Name = Exp", function()
+        parser:parse("pub var x = 3")
+        assert(trans:next()):eq("var x = 3;export {x};\n")
+      end)
+
+      test("var", function()
+        parser:parse("var")
+        assert(trans:next()):eq("\n")
+      end)
+
+      test("var Name", function()
+        parser:parse("var x")
+        assert(trans:next()):eq("let x;\n")
+      end)
+
+      test("var Name = Exp", function()
+        parser:parse("var x = 1+2")
+        assert(trans:next()):eq("let x = (1+2);\n")
+      end)
+
+      test("var Name, Name", function()
+        parser:parse("var x, y")
+        assert(trans:next()):eq("let x;let y;\n")
+      end)
+
+      test("var Name = Exp, Name = Exp", function()
+        parser:parse("var x = 1+2, y = 3+4")
+        assert(trans:next()):eq("let x = (1+2);let y = (3+4);\n")
+      end)
     end)
 
-    test("pub var Name = Exp", function()
-      parser:parse("pub var x = 3")
-      assert(trans:next()):eq("var x = 3;export x;\n")
+    suite("map", function()
+      test("var {Name} = Exp", function()
+        parser:parse("var {x} = 1+2")
+        assert(trans:next()):eq("let {x} = (1+2);\n")
+      end)
+
+      test("pub var {Name} = Exp", function()
+        parser:parse("pub var {x} = 1+2")
+        assert(trans:next()):eq("var {x} = (1+2);export {x};\n")
+      end)
+
+      test("var {Name, Name} = Exp", function()
+        parser:parse("var {x, y} = 1+2")
+        assert(trans:next()):eq("let {x, y} = (1+2);\n")
+      end)
+
+      test("pub var {Name, Name} = Exp", function()
+        parser:parse("pub var {x, y} = 1+2")
+        assert(trans:next()):eq("var {x, y} = (1+2);export {x, y};\n")
+      end)
     end)
 
-    test("var", function()
-      parser:parse("var")
-      assert(trans:next()):eq("\n")
-    end)
+    suite("list", function()
+      test("var [Name] = Exp", function()
+        parser:parse("var [x] = 1+2")
+        assert(trans:next()):eq("let [x] = dogma.getArrayToUnpack((1+2), 1);\n")
+      end)
 
-    test("var Name", function()
-      parser:parse("var x")
-      assert(trans:next()):eq("let x;\n")
-    end)
+      test("pub var [Name] = Exp", function()
+        parser:parse("pub var [x] = 1+2")
+        assert(trans:next()):eq("var [x] = dogma.getArrayToUnpack((1+2), 1);export {x};\n")
+      end)
 
-    test("var Name = Exp", function()
-      parser:parse("var x = 1+2")
-      assert(trans:next()):eq("let x = (1+2);\n")
-    end)
+      test("var [Name, ...Name] = Exp", function()
+        parser:parse("var [x, ...y] = 1+2")
+        assert(trans:next()):eq("let [x, ...y] = dogma.getArrayToUnpack((1+2), 2);\n")
+      end)
 
-    test("var Name, Name", function()
-      parser:parse("var x, y")
-      assert(trans:next()):eq("let x, y;\n")
+      test("pub var [Name, ...Name] = Exp", function()
+        parser:parse("pub var [x, ...y] = 1+2")
+        assert(trans:next()):eq("var [x, ...y] = dogma.getArrayToUnpack((1+2), 2);export {x, y};\n")
+      end)
     end)
-
-    test("var Name = Exp, Name = Exp", function()
-      parser:parse("var x = 1+2, y = 3+4")
-      assert(trans:next()):eq("let x = (1+2), y = (3+4);\n")
-    end)
-  end)
+  end):tags("var")
 
   -----------
   -- const --
@@ -230,7 +292,7 @@ Object.defineProperty(Color, "BLUE", {value: new Color("BLUE", "3"), enum: true}
 
     test("const Name = Exp, Name = Exp", function()
       parser:parse("const x = 1+2, y = 3+4")
-      assert(trans:next()):eq("const x = (1+2), y = (3+4);\n")
+      assert(trans:next()):eq("const x = (1+2);const y = (3+4);\n")
     end)
 
     test("export const Name = Exp", function()
@@ -240,9 +302,19 @@ Object.defineProperty(Color, "BLUE", {value: new Color("BLUE", "3"), enum: true}
 
     test("pub const Name = Exp", function()
       parser:parse("pub const x = 3")
-      assert(trans:next()):eq("const x = 3;export x;\n")
+      assert(trans:next()):eq("const x = 3;export {x};\n")
     end)
-  end)
+
+    test("const {Name} = Exp", function()
+      parser:parse("const {x} = 1+2")
+      assert(trans:next()):eq("const {x} = (1+2);\n")
+    end)
+
+    test("const [Name] = Exp", function()
+      parser:parse("const [x] = 1+2")
+      assert(trans:next()):eq("const [x] = dogma.getArrayToUnpack((1+2), 1);\n")
+    end)
+  end):tags("var")
 
   -----------
   -- while --
@@ -360,7 +432,7 @@ Object.defineProperty(Color, "BLUE", {value: new Color("BLUE", "3"), enum: true}
 
     test("for each Name, Name in Exp do\\n Sent", function()
       parser:parse("for each k, v in map do\n x+1")
-      assert(trans:next()):like("const $aux[0-9]+ = map; for %(let k in $aux[0-9]+%) { let v = $aux[0-9]+%[k%]; {%(x%+1%);} }\n")
+      assert(trans:next()):eq("for (let [k, v] of Object.entries(map)) { {(x+1);} }\n")
     end)
 
     test("for each with catch", function()
@@ -394,10 +466,30 @@ Object.defineProperty(Color, "BLUE", {value: new Color("BLUE", "3"), enum: true}
     end)
   end)
 
+  -----------
+  -- yield --
+  -----------
+  suite("yield", function()
+    test("yield Exp", function()
+      parser:parse("yield x+1")
+      assert(trans:next()):eq("yield (x+1);\n")
+    end)
+  end):tags("yield")
+
   ----------
   -- type --
   ----------
   suite("type", function()
+    test("@todo type Name()", function()
+      parser:parse("@todo type Coord2D()")
+      assert(trans:next()):eq([[
+const $Coord2D = class Coord2D {
+  constructor() { todo(); }
+};
+const Coord2D = new Proxy($Coord2D, { apply(receiver, self, args) { return new $Coord2D(...args); } });
+]])
+    end)
+
     test("type Name()\\n Body", function()
       parser:parse("type Coord2D()\n .x = 0\n .y = 0")
       assert(trans:next()):eq([[
@@ -519,14 +611,14 @@ const Coord2D = new Proxy($Coord2D, { apply(receiver, self, args) { return new $
         assert(trans:next()):eq('function sum(vals) { dogma.paramExpectedToHave("vals", vals, {});{return (vals.x+vals.y);} }\n')
       end)
 
-      test("fn Name(Name:{p:type,p:type})", function()
-        parser:parse("fn sum(vals:{x:num, y:num}) = vals.x + vals.y")
-        assert(trans:next()):eq('function sum(vals) { dogma.paramExpectedToHave("vals", vals, {x: num, y: num});{return (vals.x+vals.y);} }\n')
+      test("fn Name(Name:{p,q:type,r?:type})", function()
+        parser:parse("fn sum(vals:{x, y:num, z?:num}) = vals.x + vals.y")
+        assert(trans:next()):eq('function sum(vals) { dogma.paramExpectedToHave("vals", vals, {x: {type: any, mandatory: true}, y: {type: num, mandatory: true}, z: {type: num, mandatory: false}});{return (vals.x+vals.y);} }\n')
       end)
 
-      test("fn Name(Name?:{p:type,p:type})", function()
-        parser:parse("fn sum(vals?:{x:num, y:num}) = vals.x + vals.y")
-        assert(trans:next()):eq('function sum(vals) { dogma.paramExpectedToHave("vals", vals, {x: num, y: num});{return (vals.x+vals.y);} }\n')
+      test("fn Name(Name?:{p, q:type, r?:type})", function()
+        parser:parse("fn sum(vals?:{x, y:num, z?:num}) = vals.x + vals.y")
+        assert(trans:next()):eq('function sum(vals) { dogma.paramExpectedToHave("vals", vals, {x: {type: any, mandatory: true}, y: {type: num, mandatory: true}, z: {type: num, mandatory: false}});{return (vals.x+vals.y);} }\n')
       end)
     end)
 
@@ -570,9 +662,24 @@ const Coord2D = new Proxy($Coord2D, { apply(receiver, self, args) { return new $
         parser:parse("fn sum(x?, y?) -> res:text")
         assert(trans:next()):eq('function sum(x, y) { let res = "";{} return res; }\n')
       end)
+
+      test("fn Name() -> res:text", function()
+        parser:parse("fn sum(x?, y?) -> res:num")
+        assert(trans:next()):eq('function sum(x, y) { let res = 0;{} return res; }\n')
+      end)
     end)
 
     suite("standalone", function()
+      test("@iter fn Name() Body", function()
+        parser:parse("@iter\nfn myfn()\n yield 1+2")
+        assert(trans:next()):eq("function* myfn() { {yield (1+2);} }\n")
+      end):tags("yield")
+
+      test("@todo fn Name()", function()
+        parser:parse("@todo\nfn myfn()")
+        assert(trans:next()):eq("function myfn() { todo(); }\n")
+      end)
+
       test("fn Name()", function()
         parser:parse("fn myfn()")
         assert(trans:next()):eq("function myfn() { {} }\n")
@@ -605,10 +712,37 @@ const Coord2D = new Proxy($Coord2D, { apply(receiver, self, args) { return new $
     end)
 
     suite("type", function()
+      suite("iter", function()
+        test("@iter fn Name . iter () Body", function()
+          parser:parse("@iter\nfn MyType.iter()\n yield 1+2")
+          assert(trans:next()):eq("MyType.prototype[Symbol.iterator] = function*() {yield (1+2);};\n")
+        end)
+
+        test("@iter @todo fn Name . iter () Body", function()
+          parser:parse("@iter @todo\nfn MyType.iter()\n yield 1+2")
+          assert(trans:next()):eq("MyType.prototype[Symbol.iterator] = function*() { todo(); };\n")
+        end)
+
+        test("@iter fn Name . Name () Body", function()
+          parser:parse("@iter\nfn MyType.iter2()\n yield 1+2")
+          assert(trans:next()):eq("MyType.prototype.iter2 = function*() {yield (1+2);};\n")
+        end)
+
+        test("@iter @todo fn Name . Name () Body", function()
+          parser:parse("@iter @todo\nfn MyType.iter2()\n yield 1+2")
+          assert(trans:next()):eq("MyType.prototype.iter2 = function*() { todo(); };\n")
+        end)
+      end):tags("yield")
+
       suite("property", function()
         test("@prop fn Name . Name () = Exp", function()
           parser:parse("@prop\nfn MyType.prop() = 1+2")
           assert(trans:next()):eq('Object.defineProperty(MyType.prototype, "prop", {enum: true, get: function() { {return (1+2);} }});\n')
+        end)
+
+        test("@prop @todo fn Name . Name () = Exp", function()
+          parser:parse("@prop @todo\nfn MyType.prop() = 1+2")
+          assert(trans:next()):eq('Object.defineProperty(MyType.prototype, "prop", {enum: true, get: function() { todo(); }});\n')
         end)
 
         test("@prop fn Name . Name () -> Var Body", function()
@@ -637,6 +771,11 @@ const Coord2D = new Proxy($Coord2D, { apply(receiver, self, args) { return new $
           parser:parse("@static\nasync fn MyType.method() = 1+2")
           assert(trans:next()):eq("MyType.method = async function() { {return (1+2);} };\n")
         end)
+
+        test("@static @todo fn Name . Name() Body", function()
+          parser:parse("@static @todo\nfn MyType.method() = 1+2")
+          assert(trans:next()):eq("MyType.method = function() { todo(); };\n")
+        end)
       end):tags("static")
 
       test("fn Name . Name ()", function()
@@ -653,6 +792,11 @@ const Coord2D = new Proxy($Coord2D, { apply(receiver, self, args) { return new $
         parser:parse("@abstract\nfn MyType.myfn()")
         assert(trans:next()):eq('MyType.prototype.myfn = function() { abstract(); };\n')
       end):tags("abstract")
+
+      test("@todo\\nfn Name . Name ()", function()
+        parser:parse("@todo\nfn MyType.myfn()")
+        assert(trans:next()):eq('MyType.prototype.myfn = function() { todo(); };\n')
+      end)
 
       test("fn Name : Name ()", function()
         parser:parse("fn MyType:myfn()")
@@ -705,6 +849,21 @@ const Coord2D = new Proxy($Coord2D, { apply(receiver, self, args) { return new $
       assert(trans:next()):eq("if (true) {(x+y);}\n")
     end)
 
+    test("if Exp; Exp then Exp", function()
+      parser:parse("if x+=1; x==8 then x+y")
+      assert(trans:next()):eq("(x+=1); if ((x==8)) {(x+y);}\n")
+    end)
+
+    test("if var Exp; Exp then Exp", function()
+      parser:parse("if var x=1; x then x+y")
+      assert(trans:next()):eq("{let x=1; if (x) {(x+y);}}\n")
+    end)
+
+    test("if const Exp; Exp then Exp", function()
+      parser:parse("if const x=1; x then x+y")
+      assert(trans:next()):eq("{const x=1; if (x) {(x+y);}}\n")
+    end)
+
     test("if Exp then Sent", function()
       parser:parse("if true then return x+y")
       assert(trans:next()):eq("if (true) {return (x+y);}\n")
@@ -742,12 +901,12 @@ const Coord2D = new Proxy($Coord2D, { apply(receiver, self, args) { return new $
 
     test('pub "./Item"', function()
       parser:parse('pub "./Item"')
-      assert(trans:next()):eq('const Item = require("./Item").default || require("./Item");export {Item};\n')
+      assert(trans:next()):eq('const Item = dogma.use(require("./Item"));export {Item};\n')
     end)
 
     test('pub Item, "./Item"', function()
       parser:parse('pub Item1, "./Item2"')
-      assert(trans:next()):eq('export {Item1};const Item2 = require("./Item2").default || require("./Item2");export {Item2};\n')
+      assert(trans:next()):eq('export {Item1};const Item2 = dogma.use(require("./Item2"));export {Item2};\n')
     end)
   end):tags("pub")
 

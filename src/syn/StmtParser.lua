@@ -4,13 +4,11 @@ local SentType = require("dogma.syn.SentType")
 local SubParser = require("dogma.syn._.SubParser")
 local BlockParser = require("dogma.syn._.BlockParser")
 local BreakStmt = require("dogma.syn._.BreakStmt")
-local ConstStmt = require("dogma.syn._.ConstStmt")
 local EnumStmt = require("dogma.syn._.EnumStmt")
 local NextStmt = require("dogma.syn._.NextStmt")
 local ReturnStmt = require("dogma.syn._.ReturnStmt")
 local UseStmt = require("dogma.syn._.UseStmt")
 local FromStmt = require("dogma.syn._.FromStmt")
-local VarStmt = require("dogma.syn._.VarStmt")
 local WhileStmt = require("dogma.syn._.WhileStmt")
 local DoStmt = require("dogma.syn._.DoStmt")
 local ForEachStmt = require("dogma.syn._.ForEachStmt")
@@ -23,12 +21,13 @@ local Param = require("dogma.syn._.Param")
 local Params = require("dogma.syn._.Params")
 local AsyncStmt = require("dogma.syn._.AsyncStmt")
 local IfStmt = require("dogma.syn._.IfStmt")
-local Exp = require("dogma.syn._.Exp")
-local Terminal = require("dogma.syn._.Terminal")
 local TerminalType = require("dogma.syn.TerminalType")
+local NodeType = require("dogma.syn.NodeType")
 local PubStmt = require("dogma.syn._.PubStmt")
 local ExportStmt = require("dogma.syn._.ExportStmt")
 local WithStmt = require("dogma.syn._.WithStmt")
+local YieldStmt = require("dogma.syn._.YieldStmt")
+local VarStmtParser = require("dogma.syn._.VarStmtParser")
 
 --Parser for the Dogma statements.
 local StmtParser = {}
@@ -45,83 +44,24 @@ function StmtParser.new(parser)
   --(1) create
   self = setmetatable(SubParser.new(parser), StmtParser)
   self._.expParser = parser._.expParser
+  self._.varParser = VarStmtParser.new(parser)
 
   --(2) return
   return self
 end
 
---Read a const statement.
+--Return the next var statement.
+--
+--@return VarStmt
+function StmtParser:nextVar()
+  return self._.varParser:nextVar()
+end
+
+--Return the next const statement.
 --
 --@return ConstStmt
 function StmtParser:nextConst()
-  local lexer, exper = self._.lexer, self._.expParser
-  local tok, ln, col, visib, stmt, sep
-
-  --(1) read visibility
-  tok = lexer:advance()
-  ln, col = tok.line, tok.col
-
-  if tok.type == TokenType.KEYWORD and (tok.value == "export" or tok.value == "pub") then
-    lexer:next()
-    visib = tok.value
-  end
-
-  --(2) read
-  lexer:next(TokenType.KEYWORD, "const")
-  stmt = ConstStmt.new(ln, col, visib)
-
-  --(3) get separator
-  tok = lexer:advance()
-
-  if tok.type == TokenType.EOL then
-    sep = "\n"
-    lexer:next()
-  else
-    sep = ","
-  end
-
-  --(4) get variables
-  while true do
-    local name, val
-
-    --read name
-    tok = lexer:advance()
-
-    if tok == nil or (sep == "\n" and tok.col <= stmt.col) then
-      break
-    end
-
-    name = lexer:next(TokenType.NAME).value
-
-    --read value
-    lexer:next(TokenType.SYMBOL, "=")
-    val = exper:next()
-
-    --insert variable
-    stmt:insert(name, val)
-
-    --read separator
-    if sep == "\n" then
-      lexer:next(TokenType.EOL)
-    else  --using comma as separator
-      tok = lexer:next()
-
-      if tok.type == TokenType.EOL then
-        break
-      end
-
-      if not (tok.type == TokenType.SYMBOL and tok.value == ",") then
-        error(string.format(
-          "comma expected on (%s, %s) for separating variables.",
-          tok.line,
-          tok.col
-        ))
-      end
-    end
-  end
-
-  --(5) return
-  return stmt
+  return self._.varParser:nextConst()
 end
 
 --Read a break statement.
@@ -182,6 +122,23 @@ function StmtParser:nextReturn()
 
   --(3) return
   return stmt
+end
+
+--Read a yield statement.
+--
+--@return YieldStmt
+function StmtParser:nextYield()
+  local lex, exper = self._.lexer, self._.expParser
+  local tok, ln, col, val
+
+  --(1) read
+  tok = lex:next(TokenType.KEYWORD, "yield")
+  ln, col = tok.line, tok.col
+  val = exper:next()
+  lex:next(TokenType.EOL)
+
+  --(3) return
+  return YieldStmt.new(ln, col, val)
 end
 
 --Read a use stament.
@@ -302,86 +259,6 @@ function StmtParser:nextFrom()
   end
 
   --(3) return
-  return stmt
-end
-
---Read a var statement.
---
---@return VarStmt
-function StmtParser:nextVar()
-  local lexer, exper = self._.lexer, self._.expParser
-  local tok, ln, col, stmt, visib, sep
-
-  --(1) read visibility
-  tok = lexer:advance()
-  ln, col = tok.line, tok.col
-
-  if tok.type == TokenType.KEYWORD and (tok.value == "export" or tok.value == "pub") then
-    lexer:next()
-    visib = tok.value
-  end
-
-  --(2) read
-  lexer:next(TokenType.KEYWORD, "var")
-  stmt = VarStmt.new(ln, col, visib)
-
-  --(3) get separator
-  tok = lexer:advance()
-
-  if tok.type == TokenType.EOL then
-    sep = "\n"
-    lexer:next()
-  else
-    sep = ","
-  end
-
-  --(4) get variables
-  while true do
-    local name, val
-
-    --read name
-    tok = lexer:advance()
-
-    if tok == nil or (sep == "\n" and tok.col <= stmt.col) then
-      break
-    end
-
-    name = lexer:next(TokenType.NAME).value
-
-    --read value
-    tok = lexer:advance()
-
-    if tok.type == TokenType.SYMBOL and tok.value == "=" then
-      lexer:next()
-      val = exper:next()
-    else
-      val = nil
-    end
-
-    --insert variable
-    stmt:insert(name, val)
-
-    --read separator
-    if sep == "\n" then
-      lexer:next(TokenType.EOL)
-    else  --using comma as separator
-      tok = lexer:next()
-
-      if tok.type == TokenType.EOL then
-        break
-      end
-
-      if not (tok.type == TokenType.SYMBOL and tok.value == ",") then
-        error(string.format(
-          "comma expected on (%s, %s) for separating variables.",
-          tok.line,
-          tok.col
-        ))
-      end
-    end
-  end
-
-  --(5) return
   return stmt
 end
 
@@ -920,7 +797,9 @@ function StmtParser:_readFnParamType()
   lex:next(TokenType.SYMBOL, ":")
 
   tok = lex:advance()
-  if tok.type == TokenType.SYMBOL and tok.value == "{" then
+  if not (tok.type == TokenType.SYMBOL and tok.value == "{") then
+    dtype = lex:next(TokenType.NAME).value
+  else
     lex:next()
 
     dtype = {}
@@ -931,19 +810,32 @@ function StmtParser:_readFnParamType()
     else
       while true do
         --read field
-        local pname, ptype
+        local pname, ptype, pman
 
+        --name
         pname = lex:next(TokenType.NAME).value
 
+        --?:type
         tok = lex:advance()
-        if tok.type == TokenType.SYMBOL and tok.value == ":" then
-          lex:next()
+
+        if tok.type == TokenType.SYMBOL and tok.value == "?" then
+          lex:next(TokenType.SYMBOL, "?")
+          lex:next(TokenType.SYMBOL, ":")
           ptype = lex:next(TokenType.NAME).value
+          pman = false
         else
-          ptype = "any"
+          pman = true
+
+          tok = lex:advance()
+          if tok.type == TokenType.SYMBOL and tok.value == ":" then
+            lex:next()
+            ptype = lex:next(TokenType.NAME).value
+          else
+            ptype = "any"
+          end
         end
 
-        table.insert(dtype, {name = pname, type = ptype})
+        table.insert(dtype, {name = pname, type = ptype, mandatory = pman})
 
         --read next or end
         tok = lex:advance()
@@ -955,8 +847,6 @@ function StmtParser:_readFnParamType()
         lex:next(TokenType.SYMBOL, ",")
       end --while
     end
-  else
-    dtype = lex:next(TokenType.NAME).value
   end
 
   --(2) return
@@ -975,34 +865,34 @@ end
 --
 --@return val, type
 function StmtParser:_readFnParamValueWithInference()
-  local lex = self._.lexer
-  local tok, val, dtype
+  local lex, exper = self._.lexer, self._.expParser
+  local val, dtype
 
   --(1) read
-  lex:next(TokenType.SYMBOL, ":=")
-  tok = lex:next()
+  lex:nextSymbol(":=")
+  val = exper:_readExp()
 
-  if tok.type == TokenType.LITERAL and type(tok.value) == "string" then
-    val = Exp.new(tok.line, tok.col)
-    val:insert(Terminal.new(TerminalType.TEXT, tok))
-    dtype = "text"
-  elseif tok.type == TokenType.LITERAL and type(tok.value) == "number" then
-    val = Exp.new(tok.line, tok.col)
-    val:insert(Terminal.new(TerminalType.NUM, tok))
-    dtype = "num"
-  elseif tok.type == TokenType.KEYWORD and tok.value == "true" then
-    val = Exp.new(tok.line, tok.col)
-    val:insert(Terminal.new(TerminalType.TRUE, tok))
-    dtype = "bool"
-  elseif tok.type == TokenType.KEYWORD and tok.value == "false" then
-    val = Exp.new(tok.line, tok.col)
-    val:insert(Terminal.new(TerminalType.FALSE, tok))
-    dtype = "bool"
-  else
+  --(2) infer data type
+  local node = val.tree.root
+
+  if node.type == NodeType.TERMINAL then
+    if node.subtype == TerminalType.TEXT then
+      dtype = "text"
+    elseif node.subtype == TerminalType.NUM then
+      dtype = "num"
+    elseif node.subtype == TerminalType.TRUE or node.subtype == TerminalType.FALSE then
+      dtype = "bool"
+    elseif node.subtype == TerminalType.MAP then
+      dtype = "map"
+    elseif node.subtype == TerminalType.LIST then
+      dtype = "list"
+    end
+  end
+
+  if not dtype then
     error(string.format(
-      "on (%s, %s), for infering type, the default value must be a literal: text, num or bool.",
-      tok.line,
-      tok.col
+      "on (%s, %s), for infering type, the default value must be a literal: bool, list, map, num or text.",
+      val.line, val.col
     ))
   end
 
@@ -1169,14 +1059,32 @@ end
 --@return IfStmt
 function StmtParser:nextIf()
   local lex, parser = self._.lexer, self._.parser
-  local tok, ln, col, cond, body, elif, el
+  local tok, ln, decl, val, col, cond, body, elif, el
 
   --(1) read if keyword
   tok = lex:next(TokenType.KEYWORD, "if")
   ln, col = tok.line, tok.col
 
-  --.(2) read condition
+  --(2) read 1st exp
+  tok = lex:advance()
+
+  if tok.type == TokenType.KEYWORD and (tok.value == "var" or tok.value == "const") then
+    decl = tok.value
+    lex:next()
+  end
+
   cond = parser:nextExp()
+
+  --.(3) read 2nd exp
+  tok = lex:advance()
+
+  if decl or (tok.type == TokenType.SYMBOL and tok.value == ";") then
+    lex:next(TokenType.SYMBOL, ";")
+    val = cond
+    cond = parser:nextExp()
+  end
+
+  --(4) read body
   lex:next(TokenType.KEYWORD, "then")
 
   tok = lex:advance()
@@ -1228,8 +1136,8 @@ function StmtParser:nextIf()
     end
   end
 
-  --(3) return
-  return IfStmt.new(ln, col, cond, body, elif, el)
+  --(5) return
+  return IfStmt.new(ln, col, decl, val, cond, body, elif, el)
 end
 
 --Read a pub statement.
