@@ -1,10 +1,10 @@
 -- This file was automatically generated for the LuaDist project.
 
 package = "dogma-core"
-version = "1.0.alpha9-0"
+version = "1.0.alpha10-0"
 -- LuaDist source
 source = {
-  tag = "1.0.alpha9-0",
+  tag = "1.0.alpha10-0",
   url = "git://github.com/LuaDist-testing/dogma-core.git"
 }
 -- Original source
@@ -57,6 +57,7 @@ build = {
     ["dogma.syn.TerminalType"] = "src/syn/TerminalType.lua",
     ["dogma.syn.UnpackParser"] = "src/syn/UnpackParser.lua",
     ["dogma.syn._.AsyncStmt"] = "src/syn/AsyncStmt.lua",
+    ["dogma.syn._.AwaitFn"] = "src/syn/AwaitFn.lua",
     ["dogma.syn._.BinOp"] = "src/syn/BinOp.lua",
     ["dogma.syn._.BlockParser"] = "src/syn/BlockParser.lua",
     ["dogma.syn._.BreakStmt"] = "src/syn/BreakStmt.lua",

@@ -742,40 +742,53 @@ end
 --
 --@return FnStmt
 function StmtParser:nextFn(annots)
-  local lexer = self._.lexer
-  local tok, ln, col, visib, itype, name, params, rtype, rvar, body, catch, fin
+  local lex = self._.lexer
+  local tok, ln, col, visib, async, itype, name, params, rtype, rvar, body, catch, fin
 
   --(1) read visibility
-  tok = lexer:advance()
+  tok = lex:advance()
   ln, col = tok.line, tok.col
 
   if tok.type == TokenType.KEYWORD and (tok.value == "export" or tok.value == "pub" or tok.value == "pvt") then
-    lexer:next()
+    lex:next()
     visib = tok.value
   end
 
-  --(2) read fn type.name
-  lexer:next(TokenType.KEYWORD, "fn")
-  name = lexer:next(TokenType.NAME).value
+  --(2) read async
+  tok = lex:advance()
 
-  tok = lexer:advance()
+  if tok.type == TokenType.KEYWORD and tok.value == "async" then
+    lex:next()
+    async = true
+  else
+    async = false
+  end
+
+  --(3) read fn type.name
+  lex:next(TokenType.KEYWORD, "fn")
+  name = lex:next(TokenType.NAME).value
+
+  tok = lex:advance()
   if tok.type == TokenType.SYMBOL and (tok.value == "." or tok.value == ":") then
-    lexer:next()
+    lex:next()
     visib = (tok.value == "." and "pub" or "pvt")
     itype = name
-    name = lexer:next(TokenType.NAME).value
+    name = lex:next(TokenType.NAME).value
   end
 
   --(3) read parameters, return type and return variable
   params = self:_readFnParams()
-  rvar = self:_readFnReturnVar()
-  rtype = self:_readFnType()
+  
+  if not async then
+    rvar = self:_readFnReturnVar()
+    rtype = self:_readFnType()
+  end
 
   --(4) read body
-  tok = lexer:advance()
+  tok = lex:advance()
 
   if tok.type == TokenType.SYMBOL and tok.value == "=" then
-    lexer:next()
+    lex:next()
     body = {self._.expParser:_readExp()}
 
     if #body > 0 and body[1].type == SentType.EXP then
@@ -785,7 +798,7 @@ function StmtParser:nextFn(annots)
       body[1]:insert(exp)
     end
   else
-    lexer:next(TokenType.EOL)
+    lex:next(TokenType.EOL)
     body = self:_readBody(2, col)
   end
 
@@ -794,7 +807,7 @@ function StmtParser:nextFn(annots)
   fin = self:_readFinally(col)
 
   --(6) return
-  return FnStmt.new(ln, col, annots, visib, itype, name, params, rtype, rvar, body, catch, fin)
+  return FnStmt.new(ln, col, annots, visib, async, itype, name, params, rtype, rvar, body, catch, fin)
 end
 
 --Read the function parameters.

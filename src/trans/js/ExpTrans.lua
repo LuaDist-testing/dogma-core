@@ -70,6 +70,8 @@ function ExpTrans:_transTerminal(node)
     return self:transform(node.data)
   elseif node.subtype == TerminalType.NATIVE then
     return self:_transNativeFn(node)
+  elseif node.subtype == TerminalType.AWAIT then
+    return self:_transAwaitFn(node)
   elseif node.subtype == TerminalType.PEVAL then
     return self:_transPevalFn(node)
   elseif node.subtype == TerminalType.THROW then
@@ -92,6 +94,11 @@ end
 --Transform a native() function.
 function ExpTrans:_transNativeFn(fn)
   return string.format(fn.code)
+end
+
+--Transform an await() function.
+function ExpTrans:_transAwaitFn(fn)
+  return string.format("await(%s)", self:transform(fn.exp))
 end
 
 --Transform a peval() function.

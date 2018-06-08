@@ -812,6 +812,16 @@ return suite("dogma.syn.ExpParser", function()
   end):tags("native")
 
   -------------
+  -- await() --
+  -------------
+  suite("await()", function()
+    test("await(Exp)", function()
+      parser:parse("await(1+2)")
+      assert(tostring(parser:next())):eq("(await (+ 1 2))")
+    end)
+  end):tags("await")
+
+  -------------
   -- peval() --
   -------------
   suite("peval()", function()

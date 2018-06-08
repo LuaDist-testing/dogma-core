@@ -695,8 +695,9 @@ function StmtTrans:_transStdFn(fn)
 
   --(1) transform
   code = string.format(
-    "%sfunction %s(%s) { ",
+    "%s%sfunction %s(%s) { ",
     self:_transVisib(fn.visib),
+    fn.async and "async " or "",
     fn.name,
     self:_transParams(fn.params)
   )
@@ -771,18 +772,20 @@ function StmtTrans:_transMethod(stmt)
   else
     if tablex.find(stmt.annots, "static") then
       code = string.format(
-        "%s.%s%s = function(%s) { ",
+        "%s.%s%s = %sfunction(%s) { ",
         stmt.itype,
         stmt.visib == "pub" and "" or "_",
         stmt.name,
+        stmt.async and "async " or "",
         self:_transParams(stmt.params)
       )
     else
       code = string.format(
-        "%s.prototype.%s%s = function(%s) { ",
+        "%s.prototype.%s%s = %sfunction(%s) { ",
         stmt.itype,
         stmt.visib == "pub" and "" or "_",
         stmt.name,
+        stmt.async and "async " or "",
         self:_transParams(stmt.params)
       )
     end
@@ -819,6 +822,10 @@ function StmtTrans:_transReturnVar(fn)
         code = string.format("let %s = {};", fn.rvar)
       elseif fn.rtype == "list" then
         code = string.format("let %s = [];", fn.rvar)
+      elseif fn.rtype == "bool" then
+        code = string.format("let %s = false;", fn.rvar)
+      elseif fn.rtype == "text" then
+        code = string.format('let %s = "";', fn.rvar)
       else
         code = string.format("let %s;", fn.rvar)
       end

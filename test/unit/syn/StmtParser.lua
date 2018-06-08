@@ -1910,6 +1910,7 @@ return suite("dogma.syn.StmtParser", function()
         col = 1,
         annots = {},
         visib = params[1],
+        async = false,
         itype = nil,
         name = "myfn",
         accessor = nil,
@@ -1933,6 +1934,7 @@ return suite("dogma.syn.StmtParser", function()
         col = 1,
         annots = {},
         visib = nil,
+        async = false,
         itype = nil,
         name = "myfn",
         accessor = nil,
@@ -1952,6 +1954,7 @@ return suite("dogma.syn.StmtParser", function()
         col = 1,
         annots = {"annot1"},
         visib = nil,
+        async = false,
         itype = nil,
         name = "myfn",
         accessor = nil,
@@ -1971,6 +1974,7 @@ return suite("dogma.syn.StmtParser", function()
         col = 1,
         annots = {},
         visib = nil,
+        async = false,
         itype = nil,
         name = "myfn",
         accessor = nil,
@@ -1990,6 +1994,7 @@ return suite("dogma.syn.StmtParser", function()
         col = 1,
         annots = {},
         visib = nil,
+        async = false,
         itype = nil,
         name = "myfn",
         accessor = nil,
@@ -2014,6 +2019,7 @@ return suite("dogma.syn.StmtParser", function()
         col = 1,
         annots = {},
         visib = nil,
+        async = false,
         itype = nil,
         name = "myfn",
         accessor = nil,
@@ -2033,6 +2039,7 @@ return suite("dogma.syn.StmtParser", function()
         col = 1,
         annots = {},
         visib = "pub",
+        async = false,
         itype = "MyType",
         name = "myfn",
         accessor = nil,
@@ -2052,6 +2059,7 @@ return suite("dogma.syn.StmtParser", function()
         col = 1,
         annots = {},
         visib = "pvt",
+        async = false,
         itype = "MyType",
         name = "myfn",
         accessor = nil,
@@ -2071,6 +2079,7 @@ return suite("dogma.syn.StmtParser", function()
         col = 1,
         annots = {},
         visib = nil,
+        async = false,
         itype = nil,
         name = "myfn",
         accessor = nil,
@@ -2091,6 +2100,7 @@ return suite("dogma.syn.StmtParser", function()
         col = 1,
         annots = {},
         visib = nil,
+        async = false,
         itype = nil,
         name = "myfn",
         rtype = "num",
@@ -2111,6 +2121,45 @@ return suite("dogma.syn.StmtParser", function()
         col = 1,
         annots = {},
         visib = nil,
+        async = false,
+        itype = nil,
+        name = "sum",
+        accessor = nil,
+        rtype = nil,
+        rvar = nil,
+        params = {
+          {
+            const = false,
+            modifier = nil,
+            name = "x",
+            optional = false,
+            type = nil,
+            value = nil
+          },
+          {
+            const = false,
+            modifier = nil,
+            name = "y",
+            optional = false,
+            type = nil,
+            value = nil
+          }
+        }
+      })
+      assert(stmt.body):len(1)
+      assert(stmt.body[1]:__tostring()):eq("return (+ x y)")
+    end)
+
+    test("async fn Name() Body", function()
+      parser:parse("async fn sum(x, y) = x + y")
+
+      stmt = parser:next()
+      assert(stmt):isTable():has({
+        line = 1,
+        col = 1,
+        annots = {},
+        visib = nil,
+        async = true,
         itype = nil,
         name = "sum",
         accessor = nil,

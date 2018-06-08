@@ -73,7 +73,13 @@ function Parser:next()
       end
     elseif tok.type == TokenType.KEYWORD then
       if tok.value == "async" then
-        sent = stmter:nextAsync()
+        local aux = lex:advance(2)
+
+        if aux.type == TokenType.KEYWORD and aux.value == "fn" then
+          sent = stmter:nextFn(annots)
+        else
+          sent = stmter:nextAsync()
+        end
       elseif tok.value == "break" then
         sent = stmter:nextBreak()
       elseif tok.value == "const" then
@@ -104,7 +110,7 @@ function Parser:next()
             end
           elseif tok.value == "enum" then
             sent = stmter:nextEnum(annots)
-          elseif tok.value == "fn" then
+          elseif tok.value == "fn" or tok.value == "async" then
             sent = stmter:nextFn(annots)
           elseif tok.value == "type" then
             sent = stmter:nextType(annots)
@@ -126,7 +132,7 @@ function Parser:next()
             sent = stmter:nextExport()
           end
         end
-      elseif tok.value == "fn" then
+      elseif tok.value == "fn" or tok.value == "async" then
         sent = stmter:nextFn(annots)
       elseif tok.value == "for" then
         tok = lex:advance(2)

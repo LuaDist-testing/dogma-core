@@ -560,6 +560,16 @@ const Coord2D = new Proxy($Coord2D, { apply(receiver, self, args) { return new $
         parser:parse("fn sum(x?, y?) -> res:list\n res.push(x + y)")
         assert(trans:next()):eq("function sum(x, y) { let res = [];{res.push((x+y));} return res; }\n")
       end)
+
+      test("fn Name() -> res:bool", function()
+        parser:parse("fn sum(x?, y?) -> res:bool")
+        assert(trans:next()):eq("function sum(x, y) { let res = false;{} return res; }\n")
+      end)
+
+      test("fn Name() -> res:text", function()
+        parser:parse("fn sum(x?, y?) -> res:text")
+        assert(trans:next()):eq('function sum(x, y) { let res = "";{} return res; }\n')
+      end)
     end)
 
     suite("standalone", function()
@@ -587,6 +597,11 @@ const Coord2D = new Proxy($Coord2D, { apply(receiver, self, args) { return new $
         parser:parse("fn sum(x, y)\n return x+y")
         assert(trans:next()):eq('function sum(x, y) { dogma.paramExpected("x", x, null);dogma.paramExpected("y", y, null);{return (x+y);} }\n')
       end)
+
+      test("async fn Name(params) Body", function()
+        parser:parse("async fn sum(x, y)\n return x+y")
+        assert(trans:next()):eq('async function sum(x, y) { dogma.paramExpected("x", x, null);dogma.paramExpected("y", y, null);{return (x+y);} }\n')
+      end)
     end)
 
     suite("type", function()
@@ -613,15 +628,25 @@ const Coord2D = new Proxy($Coord2D, { apply(receiver, self, args) { return new $
       end):tags("prop")
 
       suite("static method", function()
-        test("@static fn Name . Name() -> res\\n Body", function()
+        test("@static fn Name . Name() -> res Body", function()
           parser:parse("@static\nfn MyType.method() -> res\n  res = 1+2")
           assert(trans:next()):eq("MyType.method = function() { let res;{(res=(1+2));} return res; };\n")
+        end)
+
+        test("@static async fn Name . Name() Body", function()
+          parser:parse("@static\nasync fn MyType.method() = 1+2")
+          assert(trans:next()):eq("MyType.method = async function() { {return (1+2);} };\n")
         end)
       end):tags("static")
 
       test("fn Name . Name ()", function()
         parser:parse("fn MyType.myfn()")
         assert(trans:next()):eq('MyType.prototype.myfn = function() { {} };\n')
+      end)
+
+      test("async fn Name . Name ()", function()
+        parser:parse("async fn MyType.myfn()")
+        assert(trans:next()):eq('MyType.prototype.myfn = async function() { {} };\n')
       end)
 
       test("@abstract\\nfn Name . Name ()", function()
@@ -657,6 +682,11 @@ const Coord2D = new Proxy($Coord2D, { apply(receiver, self, args) { return new $
       test("fn Name . Name (.x Name ?)", function()
         parser:parse("fn MyType.myfn(.x?)")
         assert(trans:next()):eq('MyType.prototype.myfn = function(x) { Object.defineProperty(this, "x", {value: x, enum: true, writable: true});{} };\n')
+      end)
+
+      test("fn Name . Name() -> self\\n Body", function()
+        parser:parse("fn MyType.method() -> self\n 1+2")
+        assert(trans:next()):eq("MyType.prototype.method = function() { {(1+2);} return this; };\n")
       end)
 
       test("fn Name . Name() -> self\\n Body", function()

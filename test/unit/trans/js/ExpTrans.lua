@@ -156,6 +156,11 @@ return suite("dogma.trans.js._.ExpTrans", function()
       assert(trans:next()):eq("(x=new Proxy(target, handler));\n")
     end):tags("native")
 
+    test("await(Exp)", function()
+      parser:parse("x = await(1+2)")
+      assert(trans:next()):eq("(x=await((1+2)));\n")
+    end):tags("await")
+
     test("peval(Exp)", function()
       parser:parse("x = peval(1+2)")
       assert(trans:next()):eq("(x=dogma.peval(() => {return (1+2);}));\n")

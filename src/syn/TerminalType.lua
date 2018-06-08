@@ -15,5 +15,6 @@ return {
   PEVAL = 14,
   THROW = 15,
   NOP = 16,
-  NATIVE = 17
+  NATIVE = 17,
+  AWAIT = 18
 }

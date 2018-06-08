@@ -20,6 +20,7 @@ local NativeFn = require("dogma.syn._.NativeFn")
 local ThrowFn = require("dogma.syn._.ThrowFn")
 local ReturnStmt = require("dogma.syn._.ReturnStmt")
 local PackOp = require("dogma.syn._.PackOp")
+local AwaitFn = require("dogma.syn._.AwaitFn")
 
 --An expression parser.
 local ExpParser = {}
@@ -100,6 +101,9 @@ function ExpParser:_readExp()
       else
         exp:insert(self:_readLiteralMap())
       end
+    elseif tok.type == TokenType.KEYWORD and tok.value == "await" then
+      lex:unshift()
+      exp:insert(self:_readAwait())
     elseif tok.type == TokenType.KEYWORD and tok.value == "fn" then
       lex:unshift()
       exp:insert(self:_readFn())
@@ -287,6 +291,24 @@ function ExpParser:_readNative()
 
   --(2) return
   return NativeFn.new(ln, col, code)
+end
+
+--Read an await(Exp) terminal.
+--
+--@return AwaitFn
+function ExpParser:_readAwait()
+  local lex = self._.lexer
+  local tok, ln, col, exp
+
+  --(1) read
+  tok = lex:next(TokenType.KEYWORD, "await")
+  ln, col = tok.line, tok.col
+  lex:next(TokenType.SYMBOL, "(")
+  exp = self:_readExp()
+  lex:next(TokenType.SYMBOL, ")")
+
+  --(2) return
+  return AwaitFn.new(ln, col, exp)
 end
 
 --Read a peval(Exp) terminal.
