@@ -275,6 +275,16 @@ return suite("dogma.trans.js._.ExpTrans", function()
         {subtitle = "&&", params = "&&"}
       )
 
+      test("=~", function()
+        parser:parse("status =~ FAILED")
+        assert(trans:next()):eq('dogma.enumEq(status, "FAILED");\n')
+      end)
+
+      test("!~", function()
+        parser:parse("status !~ FAILED")
+        assert(trans:next()):eq('(!dogma.enumEq(status, "FAILED"));\n')
+      end)
+
       suite("?=", function()
         test("Name ?= Exp", function()
           parser:parse("x ?= 123")

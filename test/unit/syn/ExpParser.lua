@@ -436,6 +436,16 @@ return suite("dogma.syn.ExpParser", function()
   -- bin op --
   ------------
   suite("bin op", function()
+    test("x == 123", function()
+      parser:parse("x == 123")
+      assert(tostring(parser:next())):eq("(== x 123)")
+    end)
+
+    test("x =~ 123", function()
+      parser:parse("x =~ 123")
+      assert(tostring(parser:next())):eq("(=~ x 123)")
+    end)
+
     test("x = 123", function()
       parser:parse("x = 123")
       assert(tostring(parser:next())):eq("(= x 123)")

@@ -223,6 +223,10 @@ function ExpTrans:_transBinOp(node)
     return "(" .. self:_transNode(left) .. node.op .. self:_transNode(right) .. ")"
   elseif tablex.find({"=", "+=", "-=", "*=", "**=", "/=", "%=", "<<=", ">>=", "|=", "&=", "^="}, node.op) then
     return self:_transAssign(node)
+  elseif node.op == "=~" then
+    return self:_transEnumEq(node)
+  elseif node.op == "!~" then
+    return self:_transEnumNe(node)
   elseif node.op == "?=" then
     return self:_transCondAssign(node)
   elseif node.op == ".=" then
@@ -252,6 +256,22 @@ function ExpTrans:_transBinOp(node)
   elseif node.op == "[]" then
     return string.format("dogma.getItem(%s, %s)", self:_transNode(left), self:_transNode(right))
   end
+end
+
+function ExpTrans:_transEnumEq(op)
+  return string.format(
+    'dogma.enumEq(%s, "%s")',
+    self:_transNode(op.children[1]),
+    self:_transNode(op.children[2])
+  )
+end
+
+function ExpTrans:_transEnumNe(op)
+  return string.format(
+    '(!dogma.enumEq(%s, "%s"))',
+    self:_transNode(op.children[1]),
+    self:_transNode(op.children[2])
+  )
 end
 
 function ExpTrans:_transCondAssign(op)

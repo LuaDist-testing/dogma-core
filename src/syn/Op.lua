@@ -71,8 +71,10 @@ function Op:getDesc()
 
     ["b =="] = {assoc = "l", prec = 12},
     ["b ==="] = {assoc = "l", prec = 12},
+    ["b =~"] = {assoc = "l", prec = 12},
     ["b !="] = {assoc = "l", prec = 12},
     ["b !=="] = {assoc = "l", prec = 12},
+    ["b !~"] = {assoc = "l", prec = 12},
 
     ["b &"] = {assoc = "l", prec = 11},
     ["b ^"] = {assoc = "l", prec = 10},
