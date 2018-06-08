@@ -348,7 +348,7 @@ function Lexer:_scanDirective()
     end
   end
 
-  if not (val:find("^if [a-zA-Z]+ then$") or val:find("^if not [a-zA-Z]+ then$") or val == "end" or val == "else") then
+  if not (val:find("^if [a-zA-Z]+ then$") or val:find("^if not [a-zA-Z]+ then$") or val:find("^/") or val == "end" or val == "else") then
     error(string.format("on (%s,%s), invalid directive.", ln, col))
   end
 

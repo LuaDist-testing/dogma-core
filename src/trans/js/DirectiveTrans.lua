@@ -22,6 +22,8 @@ end
 function DirectiveTrans:transform(dir)
   if dir.subtype == DirectiveType.IF then
     return self:_transIf(dir)
+  elseif dir.subtype == DirectiveType.RUNWITH then
+    return self:_transRunWith(dir)
   end
 end
 
@@ -54,4 +56,11 @@ function DirectiveTrans:_transIf(dir)
 
   --(2) return
   return code
+end
+
+--Transform a runWith directive.
+--
+--@return string
+function DirectiveTrans:_transRunWith(dir)
+  return "#!" .. dir.cmd
 end

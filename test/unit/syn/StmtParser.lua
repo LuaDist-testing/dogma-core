@@ -2537,4 +2537,191 @@ return suite("dogma.syn.StmtParser", function()
       assert(stmt.el[1]:__tostring()):eq("(= x 555)")
     end)
   end):tags("if")
+
+  ---------------
+  -- nextPub() --
+  ---------------
+  suite("nextPub()", function()
+    test("pub", function()
+      parser:parse("pub")
+      assert(function() parser:next() end):raises("name expected on (1, 4).")
+    end)
+
+    test("pub Name", function()
+      parser:parse("pub Item")
+      stmt = parser:next()
+      assert(stmt):isTable():has({
+        line = 1,
+        col = 1,
+        subtype = StmtType.PUB,
+        items = {"Item"}
+      })
+    end)
+
+    test("pub Name, Name", function()
+      parser:parse("pub Item1, Item2")
+      stmt = parser:next()
+      assert(stmt):isTable():has({
+        line = 1,
+        col = 1,
+        subtype = StmtType.PUB,
+        items = {"Item1", "Item2"}
+      })
+    end)
+
+    test("pub Name Name - error", function()
+      parser:parse("pub Item1 Item2")
+      assert(function() parser:next() end):raises("on (1,11), comma expected.")
+    end)
+  end):tags("pub")
+
+  ------------------
+  -- nextExport() --
+  ------------------
+  suite("nextExport()", function()
+    test("export", function()
+      parser:parse("export")
+      assert(function() parser:next() end):raises("incomplete expression started on (1, 7).")
+    end)
+
+    test("export Exp", function()
+      parser:parse("export 1+2")
+      stmt = parser:next()
+      assert(stmt):isTable():has({
+        line = 1,
+        col = 1,
+        subtype = StmtType.EXPORT
+      })
+      assert(tostring(stmt.exp)):eq("(+ 1 2)")
+    end)
+  end):tags("export")
+
+  ----------------
+  -- nextWith() --
+  ----------------
+  suite("nextWith()", function()
+    test("with", function()
+      parser:parse("with")
+      assert(function() parser:next() end):raises("incomplete expression started on (1, 5).")
+    end)
+
+    test("with Exp", function()
+      parser:parse("with 1+2")
+      stmt = parser:next()
+      assert(stmt):isTable():has({
+        line = 1,
+        col = 1,
+        subtype = StmtType.WITH,
+        ifs = {},
+        els = nil
+      })
+      assert(parser:next()):isNil()
+    end)
+
+    test("with Exp if Exp then - with one sentence", function()
+      parser:parse("with 1+2\n  if 1 then x")
+      stmt = parser:next()
+      assert(stmt):isTable():has({
+        line = 1,
+        col = 1,
+        subtype = StmtType.WITH,
+        els = nil
+      })
+      assert(tostring(stmt.value)):eq("(+ 1 2)")
+      assert(stmt.ifs):len(1)
+      assert(tostring(stmt.ifs[1].cond)):eq("1")
+      assert(stmt.ifs[1].body):len(1)
+      assert(tostring(stmt.ifs[1].body[1])):eq("x")
+      assert(parser:next()):isNil()
+    end)
+
+    test("with Exp if Exp then - with several sentences", function()
+      parser:parse("with 1+2\n  if 1 then x\n    y")
+      stmt = parser:next()
+      assert(stmt):isTable():has({
+        line = 1,
+        col = 1,
+        subtype = StmtType.WITH,
+        els = nil
+      })
+      assert(tostring(stmt.value)):eq("(+ 1 2)")
+      assert(stmt.ifs):len(1)
+      assert(tostring(stmt.ifs[1].cond)):eq("1")
+      assert(stmt.ifs[1].body):len(2)
+      assert(tostring(stmt.ifs[1].body[1])):eq("x")
+      assert(tostring(stmt.ifs[1].body[2])):eq("y")
+      assert(parser:next()):isNil()
+    end)
+
+    test("with Exp - with several if", function()
+      parser:parse("with 1+2\n  if 1 then x\n  if 2 then y")
+      stmt = parser:next()
+      assert(stmt):isTable():has({
+        line = 1,
+        col = 1,
+        subtype = StmtType.WITH,
+        els = nil
+      })
+      assert(tostring(stmt.value)):eq("(+ 1 2)")
+      assert(stmt.ifs):len(2)
+      assert(tostring(stmt.ifs[1].cond)):eq("1")
+      assert(stmt.ifs[1].body):len(1)
+      assert(tostring(stmt.ifs[1].body[1])):eq("x")
+      assert(tostring(stmt.ifs[2].cond)):eq("2")
+      assert(stmt.ifs[2].body):len(1)
+      assert(tostring(stmt.ifs[2].body[1])):eq("y")
+      assert(parser:next()):isNil()
+    end)
+
+    test("with Exp - with if and else", function()
+      parser:parse("with 1+2\n  if 1 then x\n  if 2 then y\n  else z\n")
+      stmt = parser:next()
+      assert(stmt):isTable():has({
+        line = 1,
+        col = 1,
+        subtype = StmtType.WITH
+      })
+      assert(tostring(stmt.value)):eq("(+ 1 2)")
+      assert(stmt.ifs):len(2)
+      assert(tostring(stmt.ifs[1].cond)):eq("1")
+      assert(stmt.ifs[1].body):len(1)
+      assert(tostring(stmt.ifs[1].body[1])):eq("x")
+      assert(tostring(stmt.ifs[2].cond)):eq("2")
+      assert(stmt.ifs[2].body):len(1)
+      assert(tostring(stmt.ifs[2].body[1])):eq("y")
+      assert(stmt.els):isNotNil()
+      assert(stmt.els):len(1)
+      assert(tostring(stmt.els[1])):eq("z")
+      assert(parser:next()):isNil()
+    end)
+
+    test("full with", function()
+      parser:parse("with 1+2\n  if 1 then x\n    y\n  if 2 then a\n    b\n  else 1\n    2\nnop")
+      stmt = parser:next()
+      assert(stmt):isTable():has({
+        line = 1,
+        col = 1,
+        subtype = StmtType.WITH
+      })
+      assert(tostring(stmt.value)):eq("(+ 1 2)")
+      assert(stmt.ifs):len(2)
+      assert(tostring(stmt.ifs[1].cond)):eq("1")
+      assert(stmt.ifs[1].body):len(2)
+      assert(tostring(stmt.ifs[1].body[1])):eq("x")
+      assert(tostring(stmt.ifs[1].body[2])):eq("y")
+      assert(tostring(stmt.ifs[2].cond)):eq("2")
+      assert(stmt.ifs[2].body):len(2)
+      assert(tostring(stmt.ifs[2].body[1])):eq("a")
+      assert(tostring(stmt.ifs[2].body[2])):eq("b")
+      assert(stmt.els):isNotNil()
+      assert(stmt.els):len(2)
+      assert(tostring(stmt.els[1])):eq("1")
+      assert(tostring(stmt.els[2])):eq("2")
+      assert(parser:next()):isTable():has({
+        line = 8,
+        col = 1,
+        type = StmtType.EXP
+      })
+    end)
+  end):tags("with")
 end):tags("stmt")

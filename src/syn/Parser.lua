@@ -68,6 +68,8 @@ function Parser:next()
     if tok.type == TokenType.DIRECTIVE then
       if tok.value:find("^if") then
         sent = direr:nextIf()
+      elseif tok.value:find("^/") then
+        sent = direr:nextRunWith()
       end
     elseif tok.type == TokenType.KEYWORD then
       if tok.value == "async" then
@@ -87,6 +89,8 @@ function Parser:next()
       elseif tok.value == "enum" then
         sent = stmter:nextEnum(annots)
       elseif tok.value == "export" or tok.value == "pub" or tok.value == "pvt" then
+        local toParse = tok.value
+
         tok = lex:advance(2)
 
         if tok.type == TokenType.KEYWORD then
@@ -116,7 +120,11 @@ function Parser:next()
         end
 
         if not sent then
-          error(string.format("invalid export/pub on (%s, %s).", tok.line, tok.col))
+          if toParse == "pub" then
+            sent = stmter:nextPub()
+          elseif toParse == "export" then
+            sent = stmter:nextExport()
+          end
         end
       elseif tok.value == "fn" then
         sent = stmter:nextFn(annots)
@@ -150,6 +158,8 @@ function Parser:next()
         end
       elseif tok.value == "while" then
         sent = stmter:nextWhile()
+      elseif tok.value == "with" then
+        sent = stmter:nextWith()
       end
     end
 

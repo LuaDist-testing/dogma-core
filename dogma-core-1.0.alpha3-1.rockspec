@@ -1,8 +1,16 @@
+-- This file was automatically generated for the LuaDist project.
+
 package = "dogma-core"
-version = "1.0.alpha1-1"
+version = "1.0.alpha3-1"
+-- LuaDist source
 source = {
-   url = "git+https://bitbucket.org/dogmalang/dogma-core.git"
+  tag = "1.0.alpha3-1",
+  url = "git://github.com/LuaDist-testing/dogma-core.git"
 }
+-- Original source
+-- source = {
+--    url = "git+https://bitbucket.org/dogmalang/dogma-core.git"
+-- }
 description = {
    summary = "Dogma kernel.",
    detailed = [[
@@ -36,6 +44,7 @@ build = {
       ["dogma.lex._.Reader"] = "src/lex/Reader.lua",
       ["dogma.lex._.Symbol"] = "src/lex/Symbol.lua",
       ["dogma.lex._.Token"] = "src/lex/Token.lua",
+
       ["dogma.syn.DirectiveParser"] = "src/syn/DirectiveParser.lua",
       ["dogma.syn.DirectiveType"] = "src/syn/DirectiveType.lua",
       ["dogma.syn.ExpParser"] = "src/syn/ExpParser.lua",
@@ -58,6 +67,7 @@ build = {
       ["dogma.syn._.DoStmt"] = "src/syn/DoStmt.lua",
       ["dogma.syn._.EnumStmt"] = "src/syn/EnumStmt.lua",
       ["dogma.syn._.Exp"] = "src/syn/Exp.lua",
+      ["dogma.syn._.ExportStmt"] = "src/syn/ExportStmt.lua",
       ["dogma.syn._.FinallyCl"] = "src/syn/FinallyCl.lua",
       ["dogma.syn._.FnStmt"] = "src/syn/FnStmt.lua",
       ["dogma.syn._.ForEachStmt"] = "src/syn/ForEachStmt.lua",
@@ -78,7 +88,9 @@ build = {
       ["dogma.syn._.Param"] = "src/syn/Param.lua",
       ["dogma.syn._.Params"] = "src/syn/Params.lua",
       ["dogma.syn._.PevalFn"] = "src/syn/PevalFn.lua",
+      ["dogma.syn._.PubStmt"] = "src/syn/PubStmt.lua",
       ["dogma.syn._.ReturnStmt"] = "src/syn/ReturnStmt.lua",
+      ["dogma.syn._.RunWithDirective"] = "src/syn/RunWithDirective.lua",
       ["dogma.syn._.Sent"] = "src/syn/Sent.lua",
       ["dogma.syn._.SliceOp"] = "src/syn/SliceOp.lua",
       ["dogma.syn._.Stmt"] = "src/syn/Stmt.lua",
@@ -93,6 +105,8 @@ build = {
       ["dogma.syn._.UseStmt"] = "src/syn/UseStmt.lua",
       ["dogma.syn._.VarStmt"] = "src/syn/VarStmt.lua",
       ["dogma.syn._.WhileStmt"] = "src/syn/WhileStmt.lua",
+      ["dogma.syn._.WithStmt"] = "src/syn/WithStmt.lua",
+
       ["dogma.trans.Trans"] = "src/trans/Trans.lua",
       ["dogma.trans.js.Trans"] = "src/trans/js/Trans.lua",
       ["dogma.trans.js._.DirectiveTrans"] = "src/trans/js/DirectiveTrans.lua",

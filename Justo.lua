@@ -30,7 +30,8 @@ catalog:macro("test", {
   {title = "js.DirectiveTrans", task = "./test/unit/trans/js/DirectiveTrans"},
   {title = "js.ExpTrans", task = "./test/unit/trans/js/ExpTrans"},
   {title = "js.StmtTrans", task = "./test/unit/trans/js/StmtTrans"},
-  {title = "js.UnpackTrans", task = "./test/unit/trans/js/UnpackTrans"}
+  {title = "js.UnpackTrans", task = "./test/unit/trans/js/UnpackTrans"},
+  {title = "js.Trans", task = "./test/unit/trans/js/Trans"}
 }):desc("Unit testing.")
 
 catalog:macro("default", {

@@ -32,6 +32,8 @@ function StmtTrans:transform(stmt)
     return self:_transDo(stmt)
   elseif stmt.subtype == StmtType.ENUM then
     return self:_transEnum(stmt)
+  elseif stmt.subtype == StmtType.EXPORT then
+    return self:_transExport(stmt)
   elseif stmt.subtype == StmtType.FN then
     return self:_transFn(stmt)
   elseif stmt.subtype == StmtType.FOR then
@@ -44,6 +46,8 @@ function StmtTrans:transform(stmt)
     return self:_transIf(stmt)
   elseif stmt.subtype == StmtType.NEXT then
     return self:_transNext(stmt)
+  elseif stmt.subtype == StmtType.PUB then
+    return self:_transPub(stmt)
   elseif stmt.subtype == StmtType.RETURN then
     return self:_transReturn(stmt)
   elseif stmt.subtype == StmtType.TYPE then
@@ -54,8 +58,8 @@ function StmtTrans:transform(stmt)
     return self:_transVar(stmt)
   elseif stmt.subtype == StmtType.WHILE then
     return self:_transWhile(stmt)
-  -- elseif stmt.subtype == StmtType.YIELD then
-  --   return self:_transYield(stmt)
+  elseif stmt.subtype == StmtType.WITH then
+    return self:_transWith(stmt)
   end
 end
 
@@ -840,6 +844,69 @@ function StmtTrans:_transIf(stmt)
 
   if stmt.el then
     code = code .. " else " .. self:_transBody(stmt.el)
+  end
+
+  --(2) return
+  return code
+end
+
+--Transform a pub statement.
+--
+--@return string
+function StmtTrans:_transPub(stmt)
+  local code
+
+  --(1) transform
+  code = "export {"
+
+  for ix, item in ipairs(stmt.items) do
+    code = code .. (ix > 1 and ", " or "") .. item
+  end
+
+  code = code .. "};"
+
+  --(2) return
+  return code
+end
+
+--Transform an export statement.
+--
+--@return string
+function StmtTrans:_transExport(stmt)
+  local trans = self._.trans
+  local code
+
+  --(1) transform
+  code = "export default " .. trans:_trans(stmt.exp) .. ";"
+
+  --(2) return
+  return code
+end
+
+--Transform a with statement.
+--
+--@return string
+function StmtTrans:_transWith(stmt)
+  local trans = self._.trans
+  local var, code
+
+  --(1) transform
+  var = self:_getRandomName()
+
+  code = string.format("const %s = %s;", var, trans:_trans(stmt.value))
+
+  for ix, cls in ipairs(stmt.ifs) do
+    code = code .. string.format(
+      "%sif (%s == %s) %s",
+      ix == 1 and "" or " else ",
+      var,
+      trans:_trans(cls.cond),
+      self:_transBody(cls.body)
+    )
+  end
+
+  if stmt.els then
+    code = code .. " else " .. self:_transBody(stmt.els)
   end
 
   --(2) return

@@ -693,4 +693,39 @@ const Coord2D = new Proxy($Coord2D, { apply(receiver, self, args) { return new $
       assert(trans:next()):eq("if (x) {(x+y);} else if (y) {(a+b);} else if (z) {(1+2);} else {(3+4);}\n")
     end)
   end):tags("if")
+
+  ---------
+  -- pub --
+  ---------
+  suite("pub", function()
+    test("pub Item", function()
+      parser:parse("pub Item")
+      assert(trans:next()):eq("export {Item};\n")
+    end)
+
+    test("pub Item, Item", function()
+      parser:parse("pub Item1, Item2")
+      assert(trans:next()):eq("export {Item1, Item2};\n")
+    end)
+  end):tags("pub")
+
+  ------------
+  -- export --
+  ------------
+  suite("export", function()
+    test("export Exp", function()
+      parser:parse("export 1+2")
+      assert(trans:next()):eq("export default (1+2);\n")
+    end)
+  end):tags("export")
+
+  ----------
+  -- with --
+  ----------
+  suite("with", function()
+    test("with", function()
+      parser:parse("with 1+2\n  if 1 then x+1\n  if 2 then y+1\n  else z+1")
+      assert(trans:next()):like("const %$aux[0-9]+ = %(1%+2%);if %(%$aux[0-9]+ == 1%) {%(x%+1%);} else if %(%$aux[0-9]+ == 2%) {%(y%+1%);} else {%(z%+1%);}")
+    end)
+  end):tags("with")
 end):tags("stmt")

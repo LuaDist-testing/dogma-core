@@ -6,6 +6,12 @@ local StmtTrans = require("dogma.trans.js._.StmtTrans")
 local UnpackTrans = require("dogma.trans.js._.UnpackTrans")
 local SentType = require("dogma.syn.SentType")
 
+--internal data
+local PRE = [[
+//imports
+import {any, bool, func, list, map, num, promise, proxy, text, abstract, dogma, exec, keys, len, print, printf, todo, typename} from "dogmalang";
+]]
+
 --A JavaScript transformer.
 local JsTrans = {}
 JsTrans.__index = JsTrans
@@ -28,13 +34,19 @@ function JsTrans.new(opts)
 end
 
 --@override
-function JsTrans:next()
+function JsTrans:next(opts)
   local parser = self._.parser
   local out
 
-  --(1) transform
-  out = ""
+  --(1) arguments
+  if not opts then
+    opts = {}
+  end
 
+  --(2) transform
+  local first = false
+
+  out = ""
   while true do
     local sent
 
@@ -45,6 +57,18 @@ function JsTrans:next()
     end
 
     out = out .. self:_trans(sent, ";") .. "\n"
+
+    if opts.importDogmalang then
+      if not first then
+        first = true
+
+        if out:find("^#!/") then
+          out = out .. PRE
+        else
+          out = PRE .. out
+        end
+      end
+    end
   end
 
   --(2) return

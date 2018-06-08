@@ -26,6 +26,9 @@ local IfStmt = require("dogma.syn._.IfStmt")
 local Exp = require("dogma.syn._.Exp")
 local Terminal = require("dogma.syn._.Terminal")
 local TerminalType = require("dogma.syn.TerminalType")
+local PubStmt = require("dogma.syn._.PubStmt")
+local ExportStmt = require("dogma.syn._.ExportStmt")
+local WithStmt = require("dogma.syn._.WithStmt")
 
 --Parser for the Dogma statements.
 local StmtParser = {}
@@ -1207,4 +1210,99 @@ function StmtParser:nextIf()
 
   --(3) return
   return IfStmt.new(ln, col, cond, body, elif, el)
+end
+
+--Read a pub statement.
+--
+--@return PubStmt
+function StmtParser:nextPub()
+  local lex = self._.lexer
+  local tok, ln, col, items
+
+  --(1) read pub keyword
+  tok = lex:next(TokenType.KEYWORD, "pub")
+  ln, col = tok.line, tok.col
+
+  --(2) read items
+  items = {}
+
+  while true do
+    table.insert(items, lex:next(TokenType.NAME).value)
+
+    tok = lex:next()
+    if tok.type == TokenType.EOL then
+      break
+    else
+      if tok.type ~= TokenType.SYMBOL or tok.value ~= "," then
+        error(string.format("on (%s,%s), comma expected.", tok.line, tok.col))
+      end
+    end
+  end
+
+  --(3) return
+  return PubStmt.new(ln, col, items)
+end
+
+--Read an export statement.
+--
+--@return ExportStmt
+function StmtParser:nextExport()
+  local lex, parser = self._.lexer, self._.parser
+  local tok, ln, col, exp
+
+  --(1) read
+  tok = lex:next(TokenType.KEYWORD, "export")
+  ln, col = tok.line, tok.col
+
+  exp = parser:nextExp()
+  lex:next(TokenType.EOL)
+
+  --(2) return
+  return ExportStmt.new(ln, col, exp)
+end
+
+--Read a with statement.
+--
+--@return WithStmt
+function StmtParser:nextWith()
+  local lex, parser = self._.lexer, self._.parser
+  local tok, ln, col, val, ifs, els
+
+  --(1) read with
+  tok = lex:next(TokenType.KEYWORD, "with")
+  ln, col = tok.line, tok.col
+
+  val = parser:nextExp()
+  lex:next(TokenType.EOL)
+
+  --(2) read ifs
+  ifs = {}
+
+  while true do
+    local cond, ifCol, body
+
+    tok = lex:advance()
+    if not (tok and tok.type == TokenType.KEYWORD and tok.value == "if" and tok.col > col) then
+      break
+    end
+
+    lex:next()  --if
+    ifCol = tok.col
+    cond = parser:nextExp()
+    lex:next(TokenType.KEYWORD, "then")
+    body = self:_readBody(2, ifCol)
+
+    table.insert(ifs, {cond = cond, body = body})
+  end
+
+  --(3) read else
+  tok = lex:advance()
+
+  if tok and tok.type == TokenType.KEYWORD and tok.value == "else" and tok.col > col then
+    lex:next()
+    els = self:_readBody(2, tok.col)
+  end
+
+  --(4) return
+  return WithStmt.new(ln, col, val, ifs, els)
 end

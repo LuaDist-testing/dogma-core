@@ -209,6 +209,26 @@ return suite("dogma.lex.Lexer", function()
       assert(lexer._.processed):isEmpty()
       assert(lexer._.advanced):isEmpty()
     end)
+
+    test("_scanDirective() - #!/usr/bin/env node", function()
+      lexer:scan("#!/usr/bin/env node")
+      dir = lexer:next()
+
+      assert(dir):isTable():has({
+        line = 1,
+        col = 1,
+        type = TokenType.DIRECTIVE,
+        value = "/usr/bin/env node"
+      })
+      assert(lexer._.token):sameAs(dir)
+      assert(lexer._.processed):isEmpty()
+      assert(lexer._.advanced):isEmpty()
+    end)
+
+    test("_scanDirective() - #!unknown", function()
+      lexer:scan("#!unknown")
+      assert(function() lexer:next() end):raises("on (1,1), invalid directive.")
+    end)
   end):tags("directive")
 
   ---------------
@@ -299,7 +319,7 @@ return suite("dogma.lex.Lexer", function()
       assert(lexer:next()):isTable():has({type = TokenType.NAME, line = 1, col = 2, value = "then"})
       assert(lexer:next()):isTable():has({type = TokenType.EOL, line = 1, col = 6})
       assert(lexer:next()):isNil()
-    end):tags("1x2")
+    end)
 
     test("_scanId() - being keyword preceded by .", function()
       lexer:scan(".then")
@@ -308,7 +328,7 @@ return suite("dogma.lex.Lexer", function()
       assert(lexer:next()):isTable():has({type = TokenType.NAME, line = 1, col = 2, value = "then"})
       assert(lexer:next()):isTable():has({type = TokenType.EOL, line = 1, col = 6})
       assert(lexer:next()):isNil()
-    end):tags("1x2")
+    end)
 
     test("_scanId() - being keyword preceded by :", function()
       lexer:scan(":then")
@@ -317,7 +337,7 @@ return suite("dogma.lex.Lexer", function()
       assert(lexer:next()):isTable():has({type = TokenType.NAME, line = 1, col = 2, value = "then"})
       assert(lexer:next()):isTable():has({type = TokenType.EOL, line = 1, col = 6})
       assert(lexer:next()):isNil()
-    end):tags("1x2")
+    end)
 
     test("_scanId() - being keyword preceded by : using advanced token", function()
       lexer:scan(":then")
@@ -330,7 +350,7 @@ return suite("dogma.lex.Lexer", function()
       assert(lexer:next()):isTable():has({type = TokenType.NAME, line = 1, col = 2, value = "then"})
       assert(lexer:next()):isTable():has({type = TokenType.EOL, line = 1, col = 6})
       assert(lexer:next()):isNil()
-    end):tags("1x2")
+    end)
   end)
 
   -----------------

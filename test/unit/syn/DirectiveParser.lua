@@ -127,4 +127,21 @@ print("four!")
       assert(function() parser:next() end):raises("on (5,1), else directive can't be nested.")
     end):tags("123")
   end)
+
+  -------------------
+  -- nextRunWith() --
+  -------------------
+  suite("nextRunWith()", function()
+    test("#!/usr/bin/env node", function()
+      parser:parse("#!/usr/bin/env node")
+      dir = parser:next()
+      assert(dir):isTable():has({
+        line = 1,
+        col = 1,
+        type = SentType.DIRECTIVE,
+        subtype = DirectiveType.RUNWITH,
+        cmd = "/usr/bin/env node"
+      })
+    end)
+  end)
 end):tags("directive")

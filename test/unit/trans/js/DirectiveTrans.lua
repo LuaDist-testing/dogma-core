@@ -102,4 +102,14 @@ print("ok!")
       assert(trans:next()):eq('print("ok!")\n')
     end)
   end)
+
+  -------------
+  -- runWith --
+  -------------
+  suite("runWith", function()
+    test("/usr/bin/env node", function()
+      parser:parse("#!/usr/bin/env node")
+      assert(trans:next()):eq('#!/usr/bin/env node\n')
+    end)
+  end)
 end):tags("directive")

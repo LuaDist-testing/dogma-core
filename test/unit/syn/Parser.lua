@@ -12,16 +12,6 @@ return suite("dogma.syn.Parser", function()
     parser = Parser.new()
   end):title("Create parser")
 
-  ----------
-  -- misc --
-  ----------
-  suite("misc", function()
-    test("export if - error", function()
-      parser:parse("export if (x == 7) x += 1")
-      assert(function() parser:next() end):raises("invalid export/pub on (1, 8).")
-    end)
-  end)
-
   ------------
   -- next() --
   ------------

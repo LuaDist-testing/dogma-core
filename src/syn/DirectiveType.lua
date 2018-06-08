@@ -1,3 +1,4 @@
 return {
-  IF = "if"
+  IF = "if",
+  RUNWITH = "runWith"
 }

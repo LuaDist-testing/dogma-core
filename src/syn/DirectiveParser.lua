@@ -2,6 +2,7 @@
 local SubParser = require("dogma.syn._.SubParser")
 local TokenType = require("dogma.lex.TokenType")
 local IfDirective = require("dogma.syn._.IfDirective")
+local RunWithDirective = require("dogma.syn._.RunWithDirective")
 
 --A directive parser.
 local DirectiveParser = {}
@@ -85,4 +86,15 @@ function DirectiveParser:nextIf()
 
   --(4) return
   return IfDirective.new(ln, col, cond, body, el)
+end
+
+--Read the next #!/... directive.
+--
+--@return RunWithDirective
+function DirectiveParser:nextRunWith()
+  local lex = self._.lexer
+  local tok
+
+  tok = lex:next(TokenType.DIRECTIVE)
+  return RunWithDirective.new(tok.line, tok.col, tok.value)
 end
