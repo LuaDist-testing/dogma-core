@@ -201,7 +201,7 @@ function ExpTrans:_transOp(node)
 end
 
 function ExpTrans:_transUnaryOp(node)
-  if node.op == "$" or node.op == "." then
+  if node.op == "." then
     return "this." .. node.child.data
   elseif node.op == ":" then
     return "this._" .. node.child.data
@@ -225,6 +225,8 @@ function ExpTrans:_transBinOp(node)
     return "(" .. self:_transNode(left) .. node.op .. self:_transNode(right) .. ")"
   elseif tablex.find({"=", "+=", "-=", "*=", "**=", "/=", "%=", "<<=", ">>=", "|=", "&=", "^="}, node.op) then
     return self:_transAssign(node)
+  elseif node.op == "?=" then
+    return self:_transCondAssign(node)
   elseif node.op == ".=" then
     return self:_transAssignWithPubProp(node)
   elseif node.op == ":=" then
@@ -254,6 +256,33 @@ function ExpTrans:_transBinOp(node)
   end
 end
 
+function ExpTrans:_transCondAssign(op)
+  local left, right = op.children[1], op.children[2]
+  local code
+
+  --(1) transform
+  if left.arity == "b" and left.op == "[]" then
+    code = string.format(
+      'dogma.setItem("=", %s, %s, coalesce(dogma.getItem(%s, %s), %s))',
+      self:_transNode(left.children[1]),
+      self:_transNode(left.children[2]),
+      self:_transNode(left.children[1]),
+      self:_transNode(left.children[2]),
+      self:_transNode(right)
+    )
+  else
+    code = string.format(
+      "(%s = coalesce(%s, %s))",
+      self:_transNode(left),
+      self:_transNode(left),
+      self:_transNode(right)
+    )
+  end
+
+  --(2) return
+  return code
+end
+
 function ExpTrans:_transAssign(op)
   local left, right = op.children[1], op.children[2]
   local code
@@ -280,7 +309,7 @@ function ExpTrans:_transConstAssign(op)
   local code
 
   --(1) transform
-  if left.arity == "u" and (left.op == "$" or left.op == ".") then
+  if left.arity == "u" and left.op == "." then
     code = string.format(
       [[Object.defineProperty(this, "%s", {value: %s, enum: true})]],
       self:_transNode(left.child),

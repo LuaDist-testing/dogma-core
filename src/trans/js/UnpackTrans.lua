@@ -22,8 +22,10 @@ function UnpackTrans:transform(sent)
   if sent.subtype == "[]" then
     if sent.assign == "=" then
       return self:_transList(sent)
-    else
+    elseif sent.assign == ":=" then
       return self:_transReadOnlyFieldsList(sent)
+    else
+      return self:_transOptionalList(sent)
     end
   elseif sent.subtype == "{}" then
     if sent.assign == "=" then
@@ -61,26 +63,14 @@ function UnpackTrans:_transList(sent)
   --(3) variables
   code = code .. "["
 
-  for i, var in ipairs(sent.vars) do
-    local name = var.name
-    local prefix
-
-    if name:find("^[$.]") then
-      prefix = "this."
-      name = name:sub(2)
-    elseif name:find("^:") then
-      prefix = "this._"
-      name = name:sub(2)
-    else
-      prefix = ""
-    end
+  for i, def in ipairs(sent.vars) do
+    local var = self:_transDataAccess(def)
 
     code = code .. (i == 1 and "" or ", ") .. string.format(
-      "%s%s%s%s",
-      var.rest and "..." or "",
-      prefix,
-      name,
-      var.value and (" = " .. trans:_trans(var.value)) or ""
+      "%s%s%s",
+      def.mod == "..." and "..." or "",
+      var,
+      def.value and (" = " .. trans:_trans(def.value)) or ""
     )
   end
 
@@ -107,20 +97,16 @@ function UnpackTrans:_transReadOnlyFieldsList(sent)
 
   --(2) unpack
   for ix, fld in ipairs(sent.vars) do
-    local name = fld.name
+    local name = fld.name:gsub(":", "._")
 
-    if fld.name:find("^[$.]") then
-      name = fld.name:sub(2)
-
+    if fld.mod == "." then
       code = code .. string.format(
         'Object.defineProperty(this, "%s", {value: %s[%s], enum: true});',
         name,
         valVar,
         ix - 1
       )
-    elseif fld.name:find("^:") then
-      name = fld.name:sub(2)
-
+    elseif fld.mod == ":" then
       code = code .. string.format(
         'Object.defineProperty(this, "_%s", {value: %s[%s]});',
         name,
@@ -131,6 +117,45 @@ function UnpackTrans:_transReadOnlyFieldsList(sent)
       code = code .. string.format('%s = %s[%s];', name, valVar, ix - 1)
     end
   end
+
+  --(3) return
+  return code
+end
+
+--Transform [...] ?= Exp
+--
+--@param sent:Unpack
+--@return string
+function UnpackTrans:_transOptionalList(sent)
+  local trans = self._.trans
+  local code, valVar
+
+  --(1) list value
+  valVar = self:_getRandomName()
+  code = string.format("const %s = %s;", valVar, trans:_trans(sent.exp))
+
+  --(2) unpack
+  local left, right = "", ""
+
+  for ix, def in ipairs(sent.vars) do
+    local js = self:_transDataAccess(def)
+
+    if ix > 1 then
+      left = left .. ", "
+      right = right .. ", "
+    end
+
+    left = left .. js
+    right = right .. string.format(
+      "%s != null ? %s : %s[%s]",
+      js,
+      js,
+      valVar,
+      ix - 1
+    )
+  end
+
+  code = code .. string.format("[%s] = [%s];", left, right)
 
   --(3) return
   return code
@@ -175,24 +200,10 @@ function UnpackTrans:_transMap(sent)
         var.value and (" = " .. trans:_trans(var.value)) or ""
       )
     else
-      local name = var.name
-      local prefix
-
-      if name:find("^[$.]") then
-        prefix = "this."
-        name = name:sub(2)
-      elseif name:find("^:") then
-        prefix = "this._"
-        name = name:sub(2)
-      else
-        prefix = ""
-      end
-
       code = code .. (i == 1 and "" or ", ") .. string.format(
-        "%s: %s%s%s",
-        name,
-        prefix,
-        name,
+        "%s: %s%s",
+        var.name,
+        self:_transDataAccess(var),
         var.value and (" = " .. trans:_trans(var.value)) or ""
       )
     end
@@ -229,18 +240,14 @@ function UnpackTrans:_transReadOnlyFieldsMap(sent)
   for _, fld in ipairs(sent.vars) do
     local name = fld.name
 
-    if fld.name:find("^[$.]") then
-      name = fld.name:sub(2)
-
+    if fld.mod == "." then
       code = code .. string.format(
         'Object.defineProperty(this, "%s", {value: %s["%s"], enum: true});',
         name,
         valVar,
         name
       )
-    elseif fld.name:find("^:") then
-      name = fld.name:sub(2)
-
+    elseif fld.mod == ":" then
       code = code .. string.format(
         'Object.defineProperty(this, "_%s", {value: %s["%s"]});',
         name,

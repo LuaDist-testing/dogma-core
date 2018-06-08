@@ -30,7 +30,6 @@ end
 --Return the operator descriptor: assoc and prec.
 function Op:getDesc()
   local OPS = {
-    ["u $"] = {assoc = "r", prec = 20},
     ["u ."] = {assoc = "r", prec = 20},
     ["u :"] = {assoc = "r", prec = 20},
 
@@ -98,6 +97,7 @@ function Op:getDesc()
     ["b &="] = {assoc = "r", prec = 6},
     ["b |="] = {assoc = "r", prec = 6},
     ["b ^="] = {assoc = "r", prec = 6},
+    ["b ?="] = {assoc = "r", prec = 6},
 
     ["u ..."] = {assoc = "r", prec = 5}
   }

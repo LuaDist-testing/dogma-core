@@ -16,7 +16,7 @@ package.loaded[...] = Unpack
 --@param def:string     Type definition: nil, var or const.
 --@param sub:string     Unpack type: [] or {}.
 --@param vars:array
---@param assign:string  = or :=.
+--@param assign:string  =, := or ?=.
 --@param exp:Exp
 function Unpack.new(ln, col, visib, def, sub, vars, assign, exp)
   local self

@@ -825,11 +825,10 @@ function StmtParser:_readFnParams()
         const = false
       end
 
-      --$ or : or ...
+      --. or : or ...
       tok = lex:advance()
 
-      if tok.type == TokenType.SYMBOL and
-         (tok.value == "$" or tok.value == "." or tok.value == ":" or tok.value == "...") then
+      if tok.type == TokenType.SYMBOL and (tok.value == "." or tok.value == ":" or tok.value == "...") then
         lex:next()
         mod = tok.value
       end
@@ -855,12 +854,16 @@ function StmtParser:_readFnParams()
       end
 
       --default value
-      tok = lex:advance()
+      if not opt then
+        tok = lex:advance()
 
-      if tok.type == TokenType.SYMBOL and tok.value == "=" then
-        val = self:_readFnParamValue()
-      elseif tok.type == TokenType.SYMBOL and tok.value == ":=" then
-        val, dtype = self:_readFnParamValueWithInference()
+        if tok.type == TokenType.SYMBOL and tok.value == "=" then
+          opt = true
+          val = self:_readFnParamValue()
+        elseif tok.type == TokenType.SYMBOL and tok.value == ":=" then
+          opt = true
+          val, dtype = self:_readFnParamValueWithInference()
+        end
       end
 
       --insert param
@@ -1104,18 +1107,31 @@ end
 --
 --@return AsyncStmt
 function StmtParser:nextAsync()
-  local lexer = self._.lexer
-  local tok, ln, col, body, catch
+  local lex, parser = self._.lexer, self._.parser
+  local tok, ln, col, opts, body, catch
 
   --(1) read async keyword
-  tok = lexer:next(TokenType.KEYWORD, "async")
+  tok = lex:next(TokenType.KEYWORD, "async")
   ln, col = tok.line, tok.col
 
+  --(2) read options
+  opts = {}
+  tok = lex:advance()
+
+  if tok.type == TokenType.KEYWORD and tok.value == "with" then
+    lex:next()
+    lex:next(TokenType.SYMBOL, "{")
+    lex:next(TokenType.NAME, "delay")
+    lex:next(TokenType.SYMBOL, "=")
+    opts.delay = parser:nextExp()
+    lex:next(TokenType.SYMBOL, "}")
+  end
+
   --(2) read body
-  tok = lexer:advance()
+  tok = lex:advance()
 
   if tok.type == TokenType.EOL then
-    lexer:next()
+    lex:next()
     body = self:_readBody(2, col)
     catch = self:_readCatch(col)
   else
@@ -1123,7 +1139,7 @@ function StmtParser:nextAsync()
   end
 
   --(3) return
-  return AsyncStmt.new(ln, col, body, catch)
+  return AsyncStmt.new(ln, col, opts, body, catch)
 end
 
 --Read an if statement.

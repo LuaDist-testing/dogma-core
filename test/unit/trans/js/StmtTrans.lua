@@ -23,25 +23,25 @@ return suite("dogma.trans.js._.StmtTrans", function()
   ---------
   suite("use", function()
     test("use LiteralStr", function()
-      parser:parse([[use "my/module"]])
-      assert(trans:next()):eq('import module from "my/module";\n')
+      parser:parse('use "my/module"')
+      assert(trans:next()):eq('const module = require("my/module").default || require("my/module");\n')
     end)
 
     test("use LiteralStr as Name", function()
-      parser:parse([[use "my/module" as mod]])
-      assert(trans:next()):eq('import mod from "my/module";\n')
+      parser:parse('use "my/module" as mod')
+      assert(trans:next()):eq('const mod = require("my/module").default || require("my/module");\n')
     end)
 
     test("use LiteralStr, LiteralStr", function()
-      parser:parse([[use "my/mod1", "my/mod2"]])
-      assert(trans:next()):eq('import mod1 from "my/mod1";import mod2 from "my/mod2";\n')
+      parser:parse('use "my/mod1", "my/mod2"')
+      assert(trans:next()):eq('const mod1 = require("my/mod1").default || require("my/mod1");const mod2 = require("my/mod2").default || require("my/mod2");\n')
     end)
 
     test("use LiteralStr as Name, LiteralStr as Name", function()
-      parser:parse([[use "my/module1" as mod1, "my/module2" as mod2]])
-      assert(trans:next()):eq('import mod1 from "my/module1";import mod2 from "my/module2";\n')
+      parser:parse('use "my/module1" as mod1, "my/module2" as mod2')
+      assert(trans:next()):eq('const mod1 = require("my/module1").default || require("my/module1");const mod2 = require("my/module2").default || require("my/module2");\n')
     end)
-  end)
+  end):tags("use")
 
   ----------
   -- from --
@@ -167,7 +167,12 @@ Object.defineProperty(Color, "BLUE", {value: new Color("BLUE", "3"), enum: true}
       parser:parse("async\n 1+2\n 3+4\ncatch e\n 5+6")
       assert(trans:next()):eq("setImmediate(() => try {(1+2);(3+4);} catch(e) {(5+6);});\n")
     end)
-  end):tags("abc")
+
+    test("async with delay", function()
+      parser:parse("async with {delay = 123*456} 789")
+      assert(trans:next()):eq("setTimeout(() => {789;}, (123*456));\n")
+    end)
+  end):tags("async")
 
   ---------
   -- var --
@@ -394,7 +399,7 @@ Object.defineProperty(Color, "BLUE", {value: new Color("BLUE", "3"), enum: true}
   ----------
   suite("type", function()
     test("type Name()\\n Body", function()
-      parser:parse("type Coord2D()\n $x = 0\n $y = 0")
+      parser:parse("type Coord2D()\n .x = 0\n .y = 0")
       assert(trans:next()):eq([[
 const $Coord2D = class Coord2D {
   constructor() { {(this.x=0);(this.y=0);}  }
@@ -403,8 +408,8 @@ const Coord2D = new Proxy($Coord2D, { apply(receiver, self, args) { return new $
 ]])
     end)
 
-    test("type Coord2D($x, $y)", function()
-      parser:parse("type Coord2D($x, $y)")
+    test("type Coord2D(.x, .y)", function()
+      parser:parse("type Coord2D(.x, .y)")
       assert(trans:next()):eq([[
 const $Coord2D = class Coord2D {
   constructor(x, y) { dogma.paramExpected("x", x, null);dogma.paramExpected("y", y, null);Object.defineProperty(this, "x", {value: x, enum: true, writable: true});Object.defineProperty(this, "y", {value: y, enum: true, writable: true});{}  }
@@ -443,8 +448,8 @@ const Coord3D = new Proxy($Coord3D, { apply(receiver, self, args) { return new $
 ]])
     end)
 
-    test("type Coord3D(x, y, $z) : Coord2D(x, y)", function()
-      parser:parse("type Coord3D(x, y, $z) : Coord2D(x, y)")
+    test("type Coord3D(x, y, .z) : Coord2D(x, y)", function()
+      parser:parse("type Coord3D(x, y, .z) : Coord2D(x, y)")
       assert(trans:next()):eq([[
 const $Coord3D = class Coord3D extends Coord2D {
   constructor(x, y, z) { dogma.paramExpected("x", x, null);dogma.paramExpected("y", y, null);dogma.paramExpected("z", z, null);super(x, y);Object.defineProperty(this, "z", {value: z, enum: true, writable: true});{}  }
@@ -506,7 +511,7 @@ const Coord2D = new Proxy($Coord2D, { apply(receiver, self, args) { return new $
 
       test("fn Name(Name=Name)", function()
         parser:parse("fn myfn(x=123)")
-        assert(trans:next()):eq('function myfn(x = 123) { dogma.paramExpected("x", x, null);{} }\n')
+        assert(trans:next()):eq('function myfn(x = 123) { {} }\n')
       end)
 
       test("fn Name(Name:{})", function()
@@ -534,11 +539,6 @@ const Coord2D = new Proxy($Coord2D, { apply(receiver, self, args) { return new $
       test("fn Name() = Exp", function()
         parser:parse("fn myfn() = 123")
         assert(trans:next()):eq("function myfn() { {return 123;} }\n")
-      end)
-
-      test("fn Name(Name?=Name)", function()
-        parser:parse("fn myfn(x?=123)")
-        assert(trans:next()):eq('function myfn(x = 123) { {} }\n')
       end)
 
       test("export fn Name()", function()
@@ -622,23 +622,18 @@ const Coord2D = new Proxy($Coord2D, { apply(receiver, self, args) { return new $
         assert(trans:next()):eq('MyType.prototype._myfn = function() { {} };\n')
       end):tags("xyz")
 
-      test("fn Name . Name ($ Name)", function()
-        parser:parse("fn MyType.myfn($x)")
-        assert(trans:next()):eq('MyType.prototype.myfn = function(x) { dogma.paramExpected("x", x, null);Object.defineProperty(this, "x", {value: x, enum: true, writable: true});{} };\n')
-      end)
-
       test("fn Name . Name (. Name)", function()
         parser:parse("fn MyType.myfn(.x)")
         assert(trans:next()):eq('MyType.prototype.myfn = function(x) { dogma.paramExpected("x", x, null);Object.defineProperty(this, "x", {value: x, enum: true, writable: true});{} };\n')
-      end):tags("1x2")
+      end)
 
-      test("fn Name . Name ($ Name , $ Name)", function()
-        parser:parse("fn MyType.myfn($x, $y)")
+      test("fn Name . Name (. Name , . Name)", function()
+        parser:parse("fn MyType.myfn(.x, .y)")
         assert(trans:next()):eq('MyType.prototype.myfn = function(x, y) { dogma.paramExpected("x", x, null);dogma.paramExpected("y", y, null);Object.defineProperty(this, "x", {value: x, enum: true, writable: true});Object.defineProperty(this, "y", {value: y, enum: true, writable: true});{} };\n')
       end)
 
-      test("fn Name . Name (const $ Name)", function()
-        parser:parse("fn MyType.myfn(const $x)")
+      test("fn Name . Name (const . Name)", function()
+        parser:parse("fn MyType.myfn(const .x)")
         assert(trans:next()):eq('MyType.prototype.myfn = function(x) { dogma.paramExpected("x", x, null);Object.defineProperty(this, "x", {value: x, enum: true, writable: false});{} };\n')
       end)
 
@@ -647,8 +642,8 @@ const Coord2D = new Proxy($Coord2D, { apply(receiver, self, args) { return new $
         assert(trans:next()):eq('MyType.prototype.myfn = function(x) { dogma.paramExpected("x", x, null);Object.defineProperty(this, "x", {value: x, enum: true, writable: false});{} };\n')
       end)
 
-      test("fn Name . Name ($x Name ?)", function()
-        parser:parse("fn MyType.myfn($x?)")
+      test("fn Name . Name (.x Name ?)", function()
+        parser:parse("fn MyType.myfn(.x?)")
         assert(trans:next()):eq('MyType.prototype.myfn = function(x) { Object.defineProperty(this, "x", {value: x, enum: true, writable: true});{} };\n')
       end)
 
@@ -705,12 +700,12 @@ const Coord2D = new Proxy($Coord2D, { apply(receiver, self, args) { return new $
 
     test('pub "./Item"', function()
       parser:parse('pub "./Item"')
-      assert(trans:next()):eq('import Item from "./Item";export {Item};\n')
+      assert(trans:next()):eq('const Item = require("./Item").default || require("./Item");export {Item};\n')
     end)
 
     test('pub Item, "./Item"', function()
       parser:parse('pub Item1, "./Item2"')
-      assert(trans:next()):eq('export {Item1};import Item2 from "./Item2";export {Item2};\n')
+      assert(trans:next()):eq('export {Item1};const Item2 = require("./Item2").default || require("./Item2");export {Item2};\n')
     end)
   end):tags("pub")
 

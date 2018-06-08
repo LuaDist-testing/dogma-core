@@ -212,11 +212,11 @@ function ExpParser:_getNodeOf(tok)
   elseif tok.type == TokenType.SYMBOL then
     local sym = tok.value
 
-    if tablex.find({"$", "!", "~", "..."}, sym) then
+    if tablex.find({"!", "~", "..."}, sym) then
       node = UnaryOp.new(tok)
     elseif tablex.find({
                           "+=", "-=", "*", "*=", "**", "**=", "/", "/=", "%", "%=",
-                          "=", ".=", ":=", "==", "===", "!=", "!==",
+                          "=", ".=", ":=", "?=", "==", "===", "!=", "!==",
                           "<", "<<", "<<=", "<=", ">", ">>", ">>=", ">=",
                           "^", "^=", ".", ":", "&", "&=", "&&", "|", "|=", "||"
                        }, sym) then
@@ -460,7 +460,7 @@ function ExpParser:_readLiteralMap()
   local lex = self._.lexer
   local tok, ln, col, entries
 
-  --(1) read [
+  --(1) read {
   tok = lex:next(TokenType.SYMBOL, "{")
   ln, col = tok.line, tok.col
 
@@ -483,12 +483,7 @@ function ExpParser:_readLiteralMap()
 
       --skip ends of line
       if sep == "\n" then
-        tok = lex:advance()
-
-        while tok and tok.type == TokenType.EOL do
-          lex:next()
-          tok = lex:advance()
-        end
+        self:_nextEols()
       end
 
       --read item
@@ -498,6 +493,7 @@ function ExpParser:_readLiteralMap()
 
       table.insert(entries, {name = name, value = val})
 
+      --read sep
       if sep == "," then
         tok = lex:advance()
 
@@ -507,8 +503,8 @@ function ExpParser:_readLiteralMap()
           break
         end
       else
-        lex:next(TokenType.EOL)
-
+        self:_nextEols()
+        
         tok = lex:advance()
         if tok.type == TokenType.SYMBOL and tok.value == "}" then
           break

@@ -12,13 +12,15 @@ package.loaded[...] = AsyncStmt
 --
 --@param ln:number
 --@param col:number
+--@param opts:object
 --@param body:Sent[]
 --@param catch:CatchCls
-function AsyncStmt.new(ln, col, body, catch)
+function AsyncStmt.new(ln, col, opts, body, catch)
   local self
 
   --(1) create
   self = setmetatable(Stmt.new(StmtType.ASYNC, ln, col), AsyncStmt)
+  self.opts = opts
   self.body = body
   self.catch = catch
 

@@ -312,15 +312,6 @@ return suite("dogma.lex.Lexer", function()
       assert(lexer:next()):isNil()
     end)
 
-    test("_scanId() - being keyword preceded by $", function()
-      lexer:scan("$then")
-
-      assert(lexer:next()):isTable():has({type = TokenType.SYMBOL, line = 1, col = 1, value = "$"})
-      assert(lexer:next()):isTable():has({type = TokenType.NAME, line = 1, col = 2, value = "then"})
-      assert(lexer:next()):isTable():has({type = TokenType.EOL, line = 1, col = 6})
-      assert(lexer:next()):isNil()
-    end)
-
     test("_scanId() - being keyword preceded by .", function()
       lexer:scan(".then")
 
@@ -393,7 +384,6 @@ return suite("dogma.lex.Lexer", function()
       assert(sym):isTable():has({type = TokenType.SYMBOL, line = 1, col = 1, value = params[1]})
       assert(lexer._.token):sameAs(sym)
     end):iter(
-      {subtitle = "$", params = "$"},
       {subtitle = "+", params = "+"},
       {subtitle = "+=", params = "+="},
       {subtitle = "-", params = "-"},
@@ -433,6 +423,7 @@ return suite("dogma.lex.Lexer", function()
       {subtitle = ".", params = "."},
       {subtitle = ".=", params = ".="},
       {subtitle = "?", params = "?"},
+      {subtitle = "?=", params = "?="},
       {subtitle = "&", params = "&"},
       {subtitle = "&=", params = "&="},
       {subtitle = "&&", params = "&&"},

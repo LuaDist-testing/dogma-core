@@ -1,10 +1,10 @@
 -- This file was automatically generated for the LuaDist project.
 
 package = "dogma-core"
-version = "1.0.alpha4-1"
+version = "1.0.alpha5-1"
 -- LuaDist source
 source = {
-  tag = "1.0.alpha4-1",
+  tag = "1.0.alpha5-1",
   url = "git://github.com/LuaDist-testing/dogma-core.git"
 }
 -- Original source
@@ -63,6 +63,7 @@ build = {
     ["dogma.syn._.CallOp"] = "src/syn/CallOp.lua",
     ["dogma.syn._.CatchCl"] = "src/syn/CatchCl.lua",
     ["dogma.syn._.ConstStmt"] = "src/syn/ConstStmt.lua",
+    ["dogma.syn._.DataAccess"] = "src/syn/DataAccess.lua",
     ["dogma.syn._.Directive"] = "src/syn/Directive.lua",
     ["dogma.syn._.DoStmt"] = "src/syn/DoStmt.lua",
     ["dogma.syn._.EnumStmt"] = "src/syn/EnumStmt.lua",

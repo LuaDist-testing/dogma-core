@@ -73,7 +73,7 @@ function StmtTrans:_transUse(stmt)
   code = ""
 
   for _, mod in ipairs(stmt.modules) do
-    code = code .. string.format([[import %s from "%s";]], mod.name, mod.path)
+    code = code .. string.format('const %s = require("%s").default || require("%s");', mod.name, mod.path, mod.path)
   end
 
   --(2) return
@@ -168,6 +168,7 @@ end
 --@param node
 --@return string
 function StmtTrans:_transAsync(node)
+  local trans = self._.trans
   local code
 
   --(1) get sentences to run
@@ -181,7 +182,11 @@ function StmtTrans:_transAsync(node)
   code = code .. self:_transCatch(node.catch)
 
   --(2) return
-  return string.format("setImmediate(() => %s);", code)
+  if node.opts.delay then
+    return string.format("setTimeout(() => %s, %s);", code, trans:_trans(node.opts.delay))
+  else
+    return string.format("setImmediate(() => %s);", code)
+  end
 end
 
 --Transform a var statement.
@@ -615,7 +620,7 @@ function StmtTrans:_transParamsCheck(params)
   return code or ""
 end
 
---Return the code for setting $ or : attributes from parameters.
+--Return the code for setting . or : attributes from parameters.
 --
 --@return string
 function StmtTrans:_transSelfParams(params)
@@ -626,7 +631,7 @@ function StmtTrans:_transSelfParams(params)
     code = ""
 
     for _, p in ipairs(params) do
-      if p.modifier == "$" then
+      if p.modifier == "." then
         code = code .. string.format(
           [[Object.defineProperty(this, "%s", {value: %s, enum: true, writable: %s});]],
           transName(p.name),

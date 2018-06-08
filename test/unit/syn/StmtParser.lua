@@ -1525,34 +1525,6 @@ return suite("dogma.syn.StmtParser", function()
         assert(stmt.body):isEmpty()
       end)
 
-      test("fn Name ( $ Name )", function()
-        parser:parse("fn inc($x)")
-
-        stmt = parser:next()
-        assert(stmt):isTable():has({
-          line = 1,
-          col = 1,
-          annots = {},
-          visib = nil,
-          itype = nil,
-          name = "inc",
-          accessor = nil,
-          rtype = nil,
-          rvar = nil,
-          params = {
-            {
-              const = false,
-              modifier = "$",
-              name = "x",
-              optional = false,
-              type = nil,
-              value = nil
-            }
-          }
-        })
-        assert(stmt.body):isEmpty()
-      end)
-
       test("fn Name ( . Name )", function()
         parser:parse("fn inc(.x)")
 
@@ -1570,7 +1542,7 @@ return suite("dogma.syn.StmtParser", function()
           params = {
             {
               const = false,
-              modifier = "$",
+              modifier = ".",
               name = "x",
               optional = false,
               type = nil,
@@ -1742,6 +1714,190 @@ return suite("dogma.syn.StmtParser", function()
             {name = "y", type = "any"}
           }
         })
+      end)
+
+      test("fn Name ( Name ? = Exp ) = Exp - error", function()
+        parser:parse("fn inc(x ? = 123) = x + 1")
+        assert(function() parser:next() end):raises("')' expected on (1, 12).")
+      end)
+
+      test("fn Name ( Name = Exp ) = Exp", function()
+        parser:parse("fn inc(x = 123) = x + 1")
+
+        stmt = parser:next()
+        assert(stmt):isTable():has({
+          line = 1,
+          col = 1,
+          annots = {},
+          visib = nil,
+          itype = nil,
+          name = "inc",
+          accessor = nil,
+          rtype = nil,
+          rvar = nil
+        })
+        assert(stmt.params):len(1)
+        assert(stmt.params[1]):has({
+          const = false,
+          modifier = nil,
+          name = "x",
+          optional = true,
+          type = nil,
+        })
+        assert(stmt.params[1].value:__tostring()):eq("123")
+        assert(stmt.body):len(1)
+        assert(stmt.body[1]:__tostring()):eq("return (+ x 1)")
+      end)
+
+      test("fn Name ( Name : Name = Exp ) = Exp", function()
+        parser:parse("fn inc(x : num = 123) = x + 1")
+
+        stmt = parser:next()
+        assert(stmt):isTable():has({
+          line = 1,
+          col = 1,
+          annots = {},
+          visib = nil,
+          itype = nil,
+          name = "inc",
+          accessor = nil,
+          rtype = nil,
+          rvar = nil
+        })
+        assert(stmt.params):len(1)
+        assert(stmt.params[1]):has({
+          const = false,
+          modifier = nil,
+          name = "x",
+          optional = true,
+          type = "num",
+        })
+        assert(stmt.params[1].value:__tostring()):eq("123")
+        assert(stmt.body):len(1)
+        assert(stmt.body[1]:__tostring()):eq("return (+ x 1)")
+      end)
+
+      test("fn Name ( Name ? := Exp ) = Exp - error", function()
+        parser:parse("fn inc(x ? := 123) = x + 1")
+        assert(function() parser:next() end):raises("')' expected on (1, 12).")
+      end)
+
+      test("fn Name ( Name := LiteralNum )", function()
+        parser:parse("fn inc(x := 123)")
+
+        stmt = parser:next()
+        assert(stmt):isTable():has({
+          line = 1,
+          col = 1,
+          annots = {},
+          visib = nil,
+          itype = nil,
+          name = "inc",
+          accessor = nil,
+          rtype = nil,
+          rvar = nil
+        })
+        assert(stmt.params):len(1)
+        assert(stmt.params[1]):has({
+          const = false,
+          modifier = nil,
+          name = "x",
+          optional = true,
+          type = "num",
+        })
+        assert(stmt.params[1].value:__tostring()):eq("123")
+        assert(stmt.body):isEmpty()
+      end)
+
+      test("fn Name ( Name := LiteralText )", function()
+        parser:parse('fn inc(x := "texto")')
+
+        stmt = parser:next()
+        assert(stmt):isTable():has({
+          line = 1,
+          col = 1,
+          annots = {},
+          visib = nil,
+          itype = nil,
+          name = "inc",
+          accessor = nil,
+          rtype = nil,
+          rvar = nil
+        })
+        assert(stmt.params):len(1)
+        assert(stmt.params[1]):has({
+          const = false,
+          modifier = nil,
+          name = "x",
+          optional = true,
+          type = "text",
+        })
+        assert(stmt.params[1].value:__tostring()):eq("texto")
+        assert(stmt.body):isEmpty()
+      end)
+
+      test("fn Name ( Name := true )", function()
+        parser:parse("fn inc(x := true)")
+
+        stmt = parser:next()
+        assert(stmt):isTable():has({
+          line = 1,
+          col = 1,
+          annots = {},
+          visib = nil,
+          itype = nil,
+          name = "inc",
+          accessor = nil,
+          rtype = nil,
+          rvar = nil
+        })
+        assert(stmt.params):len(1)
+        assert(stmt.params[1]):has({
+          const = false,
+          modifier = nil,
+          name = "x",
+          optional = true,
+          type = "bool",
+        })
+        assert(stmt.params[1].value:__tostring()):eq("true")
+        assert(stmt.body):isEmpty()
+      end)
+
+      test("fn Name ( Name := false )", function()
+        parser:parse("fn inc(x := false)")
+
+        stmt = parser:next()
+        assert(stmt):isTable():has({
+          line = 1,
+          col = 1,
+          annots = {},
+          visib = nil,
+          itype = nil,
+          name = "inc",
+          accessor = nil,
+          rtype = nil,
+          rvar = nil
+        })
+        assert(stmt.params):len(1)
+        assert(stmt.params[1]):has({
+          const = false,
+          modifier = nil,
+          name = "x",
+          optional = true,
+          type = "bool",
+        })
+        assert(stmt.params[1].value:__tostring()):eq("false")
+        assert(stmt.body):isEmpty()
+      end)
+
+      test("fn Name ( Name := [0, 1, 2] ) - error", function()
+        parser:parse("fn inc(x := [0, 1, 2])")
+        assert(function() parser:next() end):raises("on (1, 13), for infering type, the default value must be a literal: text, num or bool.")
+      end)
+
+      test("fn Name . Name () : 123", function()
+        parser:parse("fn MyType.method() : 123")
+        assert(function() parser:next() end):raises("name expected on (1, 22).")
       end)
     end)
 
@@ -1982,180 +2138,6 @@ return suite("dogma.syn.StmtParser", function()
       assert(stmt.body):len(1)
       assert(stmt.body[1]:__tostring()):eq("return (+ x y)")
     end)
-
-    test("fn Name ( Name = Exp ) = Exp", function()
-      parser:parse("fn inc(x = 123) = x + 1")
-
-      stmt = parser:next()
-      assert(stmt):isTable():has({
-        line = 1,
-        col = 1,
-        annots = {},
-        visib = nil,
-        itype = nil,
-        name = "inc",
-        accessor = nil,
-        rtype = nil,
-        rvar = nil
-      })
-      assert(stmt.params):len(1)
-      assert(stmt.params[1]):has({
-        const = false,
-        modifier = nil,
-        name = "x",
-        optional = false,
-        type = nil,
-      })
-      assert(stmt.params[1].value:__tostring()):eq("123")
-      assert(stmt.body):len(1)
-      assert(stmt.body[1]:__tostring()):eq("return (+ x 1)")
-    end)
-
-    test("fn Name ( Name : Name = Exp ) = Exp", function()
-      parser:parse("fn inc(x : num = 123) = x + 1")
-
-      stmt = parser:next()
-      assert(stmt):isTable():has({
-        line = 1,
-        col = 1,
-        annots = {},
-        visib = nil,
-        itype = nil,
-        name = "inc",
-        accessor = nil,
-        rtype = nil,
-        rvar = nil
-      })
-      assert(stmt.params):len(1)
-      assert(stmt.params[1]):has({
-        const = false,
-        modifier = nil,
-        name = "x",
-        optional = false,
-        type = "num",
-      })
-      assert(stmt.params[1].value:__tostring()):eq("123")
-      assert(stmt.body):len(1)
-      assert(stmt.body[1]:__tostring()):eq("return (+ x 1)")
-    end)
-
-    test("fn Name ( Name := LiteralNum )", function()
-      parser:parse("fn inc(x := 123)")
-
-      stmt = parser:next()
-      assert(stmt):isTable():has({
-        line = 1,
-        col = 1,
-        annots = {},
-        visib = nil,
-        itype = nil,
-        name = "inc",
-        accessor = nil,
-        rtype = nil,
-        rvar = nil
-      })
-      assert(stmt.params):len(1)
-      assert(stmt.params[1]):has({
-        const = false,
-        modifier = nil,
-        name = "x",
-        optional = false,
-        type = "num",
-      })
-      assert(stmt.params[1].value:__tostring()):eq("123")
-      assert(stmt.body):isEmpty()
-    end)
-
-    test("fn Name ( Name := LiteralText )", function()
-      parser:parse('fn inc(x := "texto")')
-
-      stmt = parser:next()
-      assert(stmt):isTable():has({
-        line = 1,
-        col = 1,
-        annots = {},
-        visib = nil,
-        itype = nil,
-        name = "inc",
-        accessor = nil,
-        rtype = nil,
-        rvar = nil
-      })
-      assert(stmt.params):len(1)
-      assert(stmt.params[1]):has({
-        const = false,
-        modifier = nil,
-        name = "x",
-        optional = false,
-        type = "text",
-      })
-      assert(stmt.params[1].value:__tostring()):eq("texto")
-      assert(stmt.body):isEmpty()
-    end)
-
-    test("fn Name ( Name := true )", function()
-      parser:parse("fn inc(x := true)")
-
-      stmt = parser:next()
-      assert(stmt):isTable():has({
-        line = 1,
-        col = 1,
-        annots = {},
-        visib = nil,
-        itype = nil,
-        name = "inc",
-        accessor = nil,
-        rtype = nil,
-        rvar = nil
-      })
-      assert(stmt.params):len(1)
-      assert(stmt.params[1]):has({
-        const = false,
-        modifier = nil,
-        name = "x",
-        optional = false,
-        type = "bool",
-      })
-      assert(stmt.params[1].value:__tostring()):eq("true")
-      assert(stmt.body):isEmpty()
-    end)
-
-    test("fn Name ( Name := false )", function()
-      parser:parse("fn inc(x := false)")
-
-      stmt = parser:next()
-      assert(stmt):isTable():has({
-        line = 1,
-        col = 1,
-        annots = {},
-        visib = nil,
-        itype = nil,
-        name = "inc",
-        accessor = nil,
-        rtype = nil,
-        rvar = nil
-      })
-      assert(stmt.params):len(1)
-      assert(stmt.params[1]):has({
-        const = false,
-        modifier = nil,
-        name = "x",
-        optional = false,
-        type = "bool",
-      })
-      assert(stmt.params[1].value:__tostring()):eq("false")
-      assert(stmt.body):isEmpty()
-    end)
-
-    test("fn Name ( Name := [0, 1, 2] ) - error", function()
-      parser:parse("fn inc(x := [0, 1, 2])")
-      assert(function() parser:next() end):raises("on (1, 13), for infering type, the default value must be a literal: text, num or bool.")
-    end)
-
-    test("fn Name . Name () : 123", function()
-      parser:parse("fn MyType.method() : 123")
-      assert(function() parser:next() end):raises("name expected on (1, 22).")
-    end)
   end):tags("pfn")
 
   ----------------
@@ -2223,7 +2205,7 @@ return suite("dogma.syn.StmtParser", function()
     )
 
     test("type Name(params)", function()
-      parser:parse("type Coord2D(x, y)\n  $x = x\n  $y = y")
+      parser:parse("type Coord2D(x, y)\n  .x = x\n  .y = y")
 
       stmt = parser:next()
       assert(stmt):isTable():has({
@@ -2241,8 +2223,8 @@ return suite("dogma.syn.StmtParser", function()
       assert(stmt.params[1]):has({name = "x"})
       assert(stmt.params[2]):has({name = "y"})
       assert(stmt.body):len(2)
-      assert(stmt.body[1]:__tostring()):eq("(= ($ x) x)")
-      assert(stmt.body[2]:__tostring()):eq("(= ($ y) y)")
+      assert(stmt.body[1]:__tostring()):eq("(= (. x) x)")
+      assert(stmt.body[2]:__tostring()):eq("(= (. y) y)")
     end)
 
     test("type Name() : Name", function()
@@ -2265,7 +2247,7 @@ return suite("dogma.syn.StmtParser", function()
     end)
 
     test("type Name(params) : Name(args)", function()
-      parser:parse("type Coord3D(x, y, $z) : Coord2D(x, y)")
+      parser:parse("type Coord3D(x, y, .z) : Coord2D(x, y)")
 
       stmt = parser:next()
       assert(stmt):isTable():has({
@@ -2282,7 +2264,7 @@ return suite("dogma.syn.StmtParser", function()
       assert(stmt.params):len(3)
       assert(stmt.params[1]):has({name = "x", modifier = nil})
       assert(stmt.params[2]):has({name = "y", modifier = nil})
-      assert(stmt.params[3]):has({name = "z", modifier = "$"})
+      assert(stmt.params[3]):has({name = "z", modifier = "."})
       assert(stmt.bargs):len(2)
       assert(stmt.bargs[1]:__tostring()):eq("x")
       assert(stmt.bargs[2]:__tostring()):eq("y")
@@ -2301,8 +2283,24 @@ return suite("dogma.syn.StmtParser", function()
         line = 1,
         col = 1,
         subtype = StmtType.ASYNC,
+        opts = {},
         catch = nil
       })
+      assert(stmt.body):len(1)
+      assert(stmt.body[1]:__tostring(("+ 1 2")))
+    end)
+
+    test("async with {delay=Exp} Exp", function()
+      parser:parse("async with {delay=250+250} 1+2")
+
+      stmt = parser:next()
+      assert(stmt):isTable():has({
+        line = 1,
+        col = 1,
+        subtype = StmtType.ASYNC,
+        catch = nil
+      })
+      assert(tostring(stmt.opts.delay)):eq("(+ 250 250)")
       assert(stmt.body):len(1)
       assert(stmt.body[1]:__tostring(("+ 1 2")))
     end)
@@ -2315,6 +2313,7 @@ return suite("dogma.syn.StmtParser", function()
         line = 1,
         col = 1,
         subtype = StmtType.ASYNC,
+        opts = {},
         catch = nil
       })
       assert(stmt.body):len(2)
@@ -2329,14 +2328,15 @@ return suite("dogma.syn.StmtParser", function()
       assert(stmt):isTable():has({
         line = 1,
         col = 1,
-        subtype = StmtType.ASYNC
+        subtype = StmtType.ASYNC,
+        opts = {}
       })
       assert(stmt.body):len(1)
       assert(stmt.body[1]:__tostring(("+ 1 2")))
       assert(stmt.catch.body):len(1)
       assert(stmt.catch.body[1]:__tostring(("+ 3 4")))
     end)
-  end)
+  end):tags("async")
 
   --------------
   -- nextIf() --

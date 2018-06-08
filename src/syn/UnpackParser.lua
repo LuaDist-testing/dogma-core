@@ -53,40 +53,8 @@ function UnpackParser:next()
   vars = {}
 
   while true do
-    local rest, name, val
-
-    --rest?
-    tok = lex:advance()
-    if tok.type == TokenType.SYMBOL and tok.value == "..." then
-      rest = true
-      lex:next()
-    else
-      rest = false
-    end
-
-    --name
-    tok = lex:advance()
-    if tok.type == TokenType.SYMBOL and (tok.value == "$" or tok.value == "." or tok.value == ":") then
-      name = tok.value
-      lex:next()
-    else
-      name = ""
-    end
-
-    name = name .. lex:next(TokenType.NAME).value
-
-    --default value
-    tok = lex:advance()
-
-    if tok.type == TokenType.SYMBOL and tok.value == "=" then
-      lex:next()
-      val = parser:nextExp()
-    else
-      val = nil
-    end
-
-    --insert
-    table.insert(vars, {rest = rest, name = name, value = val})
+    --read
+    table.insert(vars, self:_nextDataAccess({default = true, rest = (typ == "[]")}))
 
     --comma or end
     tok = lex:advance()
@@ -108,8 +76,14 @@ function UnpackParser:next()
 
   --(5) expression
   tok = lex:advance()
-  if not (tok.type == TokenType.SYMBOL and (tok.value == "=" or tok.value == ":=")) then
-    error(string.format("on (%s,%s), = or := expected.", tok.line, tok.col))
+  if typ == "[]" then
+    if not (tok.type == TokenType.SYMBOL and (tok.value == "=" or tok.value == ":=" or tok.value == "?=")) then
+      error(string.format("on (%s,%s), '=', ':=' or '?=' expected.", tok.line, tok.col))
+    end
+  else
+    if not (tok.type == TokenType.SYMBOL and (tok.value == "=" or tok.value == ":=")) then
+      error(string.format("on (%s,%s), '=' or ':=' expected.", tok.line, tok.col))
+    end
   end
 
   lex:next()
