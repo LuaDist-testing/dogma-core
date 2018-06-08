@@ -108,9 +108,9 @@ return suite("dogma.trans.js._.ExpTrans", function()
         assert(trans:next()):eq('(a+{["x"]: (1+2)});\n')
       end)
 
-      test("{Name = Exp, Name = Exp}", function()
-        parser:parse("a + {x = 1+2, y = 3+4}")
-        assert(trans:next()):eq('(a+{["x"]: (1+2), ["y"]: (3+4)});\n')
+      test("{Name = Exp, Name, {Name} = Exp}", function()
+        parser:parse("a + {x = 1+2, y, {z} = obj}")
+        assert(trans:next()):eq('(a+{["x"]: (1+2), ["y"]: y, ["z"]: obj.z});\n')
       end)
     end):tags("map")
 

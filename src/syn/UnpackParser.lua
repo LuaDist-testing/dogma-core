@@ -82,7 +82,17 @@ function UnpackParser:next()
         lex:next(TokenType.SYMBOL, "{")
 
         while true do
-          table.insert(vars, DataAccess.new(mod, name .. "." .. lex:next(TokenType.NAME).value))
+          local fmod
+
+          tok = lex:advance()
+          if tok.type == TokenType.SYMBOL and tok.value == ":" then
+            lex:next()
+            fmod = ":"
+          else
+            fmod = "."
+          end
+
+          table.insert(vars, DataAccess.new(visib, name .. fmod .. lex:next(TokenType.NAME).value))
 
           tok = lex:advance()
           if not (tok.type == TokenType.SYMBOL and tok.value == ",") then
@@ -137,8 +147,8 @@ function UnpackParser:next()
   --(5) expression
   tok = lex:advance()
   if typ == "[]" then
-    if not (tok.type == TokenType.SYMBOL and (tok.value == "=" or tok.value == ":=" or tok.value == "?=")) then
-      error(string.format("on (%s,%s), '=', ':=' or '?=' expected.", tok.line, tok.col))
+    if not (tok.type == TokenType.SYMBOL and (tok.value == "=" or tok.value == ".=" or tok.value == ":=" or tok.value == "?=")) then
+      error(string.format("on (%s,%s), '=', '.=', ':=' or '?=' expected.", tok.line, tok.col))
     end
   else
     if not (tok.type == TokenType.SYMBOL and (tok.value == "=" or tok.value == ":=")) then

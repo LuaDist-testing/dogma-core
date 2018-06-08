@@ -530,6 +530,38 @@ const Coord2D = new Proxy($Coord2D, { apply(receiver, self, args) { return new $
       end)
     end)
 
+    suite("return var", function()
+      test("fn Name() -> self Body", function()
+        parser:parse("fn myfn() -> self\n 1+2")
+        assert(trans:next()):eq("function myfn() { {(1+2);} return this; }\n")
+      end)
+
+      test("fn Name() -> Name Body", function()
+        parser:parse("fn myfn() -> x\n 1+2")
+        assert(trans:next()):eq("function myfn() { let x;{(1+2);} return x; }\n")
+      end)
+
+      test("fn Name(param) -> Name Body - return variable not existing", function()
+        parser:parse("fn myfn(a?, b?) -> x\n x = a + b")
+        assert(trans:next()):eq("function myfn(a, b) { let x;{(x=(a+b));} return x; }\n")
+      end)
+
+      test("fn Name(param) -> Name Body - return variable existing", function()
+        parser:parse("fn myfn(a?, b?, x?) -> x\n x = a + b")
+        assert(trans:next()):eq("function myfn(a, b, x) { {(x=(a+b));} return x; }\n")
+      end)
+
+      test("fn Name() -> res:map", function()
+        parser:parse("fn sum(x?, y?) -> res:map\n res.result = x + y")
+        assert(trans:next()):eq("function sum(x, y) { let res = {};{(res.result=(x+y));} return res; }\n")
+      end)
+
+      test("fn Name() -> res:list", function()
+        parser:parse("fn sum(x?, y?) -> res:list\n res.push(x + y)")
+        assert(trans:next()):eq("function sum(x, y) { let res = [];{res.push((x+y));} return res; }\n")
+      end)
+    end)
+
     suite("standalone", function()
       test("fn Name()", function()
         parser:parse("fn myfn()")
@@ -554,26 +586,6 @@ const Coord2D = new Proxy($Coord2D, { apply(receiver, self, args) { return new $
       test("fn Name(params) Body", function()
         parser:parse("fn sum(x, y)\n return x+y")
         assert(trans:next()):eq('function sum(x, y) { dogma.paramExpected("x", x, null);dogma.paramExpected("y", y, null);{return (x+y);} }\n')
-      end)
-
-      test("fn Name() -> self Body", function()
-        parser:parse("fn myfn() -> self\n 1+2")
-        assert(trans:next()):eq("function myfn() { {(1+2);} return this; }\n")
-      end)
-
-      test("fn Name() -> Name Body", function()
-        parser:parse("fn myfn() -> x\n 1+2")
-        assert(trans:next()):eq("function myfn() { let x;{(1+2);} return x; }\n")
-      end)
-
-      test("fn Name(param) -> Name Body - return variable not existing", function()
-        parser:parse("fn myfn(a?, b?) -> x\n x = a + b")
-        assert(trans:next()):eq("function myfn(a, b) { let x;{(x=(a+b));} return x; }\n")
-      end)
-
-      test("fn Name(param) -> Name Body - return variable existing", function()
-        parser:parse("fn myfn(a?, b?, x?) -> x\n x = a + b")
-        assert(trans:next()):eq("function myfn(a, b, x) { {(x=(a+b));} return x; }\n")
       end)
     end)
 

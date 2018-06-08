@@ -1,10 +1,10 @@
 -- This file was automatically generated for the LuaDist project.
 
 package = "dogma-core"
-version = "1.0.alpha6-1"
+version = "1.0.alpha7-1"
 -- LuaDist source
 source = {
-  tag = "1.0.alpha6-1",
+  tag = "1.0.alpha7-1",
   url = "git://github.com/LuaDist-testing/dogma-core.git"
 }
 -- Original source

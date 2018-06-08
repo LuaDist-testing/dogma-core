@@ -484,7 +484,7 @@ function ExpParser:_readLiteralMap()
     end
 
     while true do
-      local name, val
+      local name, val, brackets
 
       --skip ends of line
       if sep == "\n" then
@@ -492,9 +492,31 @@ function ExpParser:_readLiteralMap()
       end
 
       --read item
-      name = lex:next(TokenType.NAME).value
-      lex:next(TokenType.SYMBOL, "=")
-      val = self:_readExp()
+      tok = lex:advance()
+
+      if tok.type == TokenType.SYMBOL and tok.value == "{" then
+        lex:next(TokenType.SYMBOL, "{")
+        name = lex:next(TokenType.NAME).value
+        brackets = true
+        lex:next(TokenType.SYMBOL, "}")
+      else
+        name = lex:next(TokenType.NAME).value
+        brackets = false
+      end
+
+      tok = lex:advance()
+      if tok.type == TokenType.SYMBOL and tok.value == "=" then
+        lex:next(TokenType.SYMBOL, "=")
+        val = self:_readExp()
+        if brackets then
+          local op = BinOp.new({line = tok.line, col = tok.col, value = "."})
+          val:insert(op)
+          op:insert(Terminal.new(TerminalType.NAME, {line = tok.line, col = tok.col, value = name}))
+        end
+      else
+        val = Exp.new(tok.line, tok.col)
+        val:insert(Terminal.new(TerminalType.NAME, {line = tok.line, col = tok.col, value = name}))
+      end
 
       table.insert(entries, {name = name, value = val})
 

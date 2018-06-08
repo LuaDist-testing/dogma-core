@@ -815,7 +815,13 @@ function StmtTrans:_transReturnVar(fn)
 
   if fn.rvar then
     if fn.rvar ~= "self" and not fn.params:has(fn.rvar) then
-      code = string.format("let %s;", fn.rvar)
+      if fn.rtype == "map" then
+        code = string.format("let %s = {};", fn.rvar)
+      elseif fn.rtype == "list" then
+        code = string.format("let %s = [];", fn.rvar)
+      else
+        code = string.format("let %s;", fn.rvar)
+      end
     end
   end
 

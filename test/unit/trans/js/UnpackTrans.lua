@@ -24,63 +24,89 @@ return suite("dogma.trans.js._.StmtTrans", function()
   suite("list", function()
     test("var [Name, Name] = Exp", function()
       parser:parse("var [x, y] = 1+2")
-      assert(trans:next()):eq("let [x, y] = (1+2);\n")
+      assert(trans:next()):eq("let [x, y] = dogma.getArrayToUnpack((1+2), 2);\n")
     end)
 
     test("export var [Name, Name] = Exp", function()
       parser:parse("export var [x, y] = 1+2")
-      assert(trans:next()):eq("export default let [x, y] = (1+2);\n")
+      assert(trans:next()):eq("export default let [x, y] = dogma.getArrayToUnpack((1+2), 2);\n")
     end)
 
     test("pub var [Name, Name] = Exp", function()
       parser:parse("pub var [x, y] = 1+2")
-      assert(trans:next()):eq("export let [x, y] = (1+2);\n")
+      assert(trans:next()):eq("export let [x, y] = dogma.getArrayToUnpack((1+2), 2);\n")
     end)
 
     test("const [Name, Name] = Exp", function()
       parser:parse("const [x, y] = 1+2")
-      assert(trans:next()):eq("const [x, y] = (1+2);\n")
+      assert(trans:next()):eq("const [x, y] = dogma.getArrayToUnpack((1+2), 2);\n")
     end)
 
     test("export const [Name, Name] = Exp", function()
       parser:parse("export const [x, y] = 1+2")
-      assert(trans:next()):eq("export default const [x, y] = (1+2);\n")
+      assert(trans:next()):eq("export default const [x, y] = dogma.getArrayToUnpack((1+2), 2);\n")
     end)
 
     test("pub const [Name, Name] = Exp", function()
       parser:parse("pub const [x, y] = 1+2")
-      assert(trans:next()):eq("export const [x, y] = (1+2);\n")
+      assert(trans:next()):eq("export const [x, y] = dogma.getArrayToUnpack((1+2), 2);\n")
     end)
 
     test("[Name] = Exp", function()
       parser:parse("[x] = 1+2")
-      assert(trans:next()):eq("[x] = (1+2);\n")
+      assert(trans:next()):eq("[x] = dogma.getArrayToUnpack((1+2), 1);\n")
+    end)
+
+    test("[Name, Name] = Exp", function()
+      parser:parse("[x, y] = 1+2")
+      assert(trans:next()):eq("[x, y] = dogma.getArrayToUnpack((1+2), 2);\n")
     end)
 
     test("[.Name, :Name, Name, Name.Name, Name:Name] = Exp", function()
       parser:parse("[.a, :b, c, d.e, f:g] = arr")
-      assert(trans:next()):eq("[this.a, this._b, c, d.e, f._g] = arr;\n")
+      assert(trans:next()):eq("[this.a, this._b, c, d.e, f._g] = dogma.getArrayToUnpack(arr, 5);\n")
     end)
 
     test("[.Name, :Name, Name, Name.Name, Name:Name] ?= Exp", function()
       parser:parse("[.a, :b, c, d.e, f:g] ?= arr")
-      assert(trans:next()):like("const $aux%d+ = arr;%[this.a, this._b, c, d.e, f._g%] = %[this.a != null %? this.a : $aux%d+%[0%], this._b != null %? this._b : $aux%d+%[1%], c != null %? c : $aux%d+%[2%], d.e != null %? d.e : $aux%d+%[3%], f._g != null %? f._g : $aux%d+%[4%]%];\n")
+      assert(trans:next()):like("const $aux%d+ = dogma.getArrayToUnpack%(arr, 5%);%[this.a, this._b, c, d.e, f._g%] = %[this.a != null %? this.a : $aux%d+%[0%], this._b != null %? this._b : $aux%d+%[1%], c != null %? c : $aux%d+%[2%], d.e != null %? d.e : $aux%d+%[3%], f._g != null %? f._g : $aux%d+%[4%]%];\n")
     end)
 
     test("[Name = Exp, Name, Name = Exp] = Exp", function()
       parser:parse("[x = 1, y, z = 3] = 1+2")
-      assert(trans:next()):eq("[x = 1, y, z = 3] = (1+2);\n")
+      assert(trans:next()):eq("[x = 1, y, z = 3] = dogma.getArrayToUnpack((1+2), 3);\n")
     end)
 
     test("[Name, ...Name] = Exp", function()
       parser:parse("[x, ...y] = 1+2")
-      assert(trans:next()):eq("[x, ...y] = (1+2);\n")
+      assert(trans:next()):eq("[x, ...y] = dogma.getArrayToUnpack((1+2), 2);\n")
     end)
 
     test("[.Name, :Name, Name, Name.Name, Name:Name] := Exp", function()
       parser:parse("[.a, :b, c, d.e, f:g] := arr")
       assert(trans:next()):like(
-        'const $aux%d+ = arr;Object.defineProperty%(this, "a", {value: $aux%d+%[0%], enum: true}%);Object.defineProperty%(this, "_b", {value: $aux%d+%[1%]}%);c = $aux%d+%[2%];d.e = $aux%d+%[3%];f._g = $aux%d+%[4%];\n'
+        'const $aux%d+ = dogma.getArrayToUnpack%(arr, 5%);Object.defineProperty%(this, "a", {value: $aux%d+%[0%], enum: true}%);Object.defineProperty%(this, "_b", {value: $aux%d+%[1%]}%);c = $aux%d+%[2%];d.e = $aux%d+%[3%];f._g = $aux%d+%[4%];\n'
+      )
+    end)
+
+    test("[:Name, :Name] .= Exp", function()
+      parser:parse("[:a, :b] .= arr")
+      assert(trans:next()):like(
+        'const $aux%d+ = dogma.getArrayToUnpack%(arr, 2%);Object.defineProperty%(this, "_a", {value: $aux%d+%[0%], writable: true}%);Object.defineProperty%(this, "a", {enum: true, get%(%) { return this._a; }}%);Object.defineProperty%(this, "_b", {value: $aux%d+%[1%], writable: true}%);Object.defineProperty%(this, "b", {enum: true, get%(%) { return this._b; }}%);\n'
+      )
+    end)
+
+    test("[Name, Name] .= Exp", function()
+      parser:parse("[a, b] .= arr")
+      assert(trans:next()):like(
+        'const $aux%d+ = dogma.getArrayToUnpack%(arr, 2%);Object.defineProperty%(this, "_a", {value: $aux%d+%[0%], writable: true}%);Object.defineProperty%(this, "a", {enum: true, get%(%) { return this._a; }}%);Object.defineProperty%(this, "_b", {value: $aux%d+%[1%], writable: true}%);Object.defineProperty%(this, "b", {enum: true, get%(%) { return this._b; }}%);\n'
+      )
+    end)
+
+    test("[Name:Name, Name:Name] .= Exp", function()
+      parser:parse("[a:x, b:y] .= arr")
+      assert(trans:next()):like(
+        'const $aux%d+ = dogma.getArrayToUnpack%(arr, 2%);Object.defineProperty%(a, "_x", {value: $aux%d+%[0%], writable: true}%);Object.defineProperty%(a, "x", {enum: true, get%(%) { return a._x; }}%);Object.defineProperty%(b, "_y", {value: $aux%d+%[1%], writable: true}%);Object.defineProperty%(b, "y", {enum: true, get%(%) { return b._y; }}%);\n'
       )
     end)
   end)

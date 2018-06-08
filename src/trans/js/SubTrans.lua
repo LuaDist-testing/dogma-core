@@ -14,11 +14,15 @@ function SubTrans.new(trans)
   }, SubTrans)
 end
 
+--Last seed used.
+local lastSeed = os.time()
+
 --Return a random name.
 --
 --@return string
 function SubTrans._getRandomName()
-  math.randomseed(os.time())
+  lastSeed = math.random(1, lastSeed)
+  math.randomseed(lastSeed)
   return "$aux" .. os.time() .. math.random(1, 10000)
 end
 

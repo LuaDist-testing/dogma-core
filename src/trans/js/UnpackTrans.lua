@@ -24,6 +24,8 @@ function UnpackTrans:transform(sent)
       return self:_transList(sent)
     elseif sent.assign == ":=" then
       return self:_transReadOnlyFieldsList(sent)
+    elseif sent.assign == ".=" then
+      return self:_transPropList(sent)
     else
       return self:_transOptionalList(sent)
     end
@@ -77,7 +79,11 @@ function UnpackTrans:_transList(sent)
   code = code .. "]"
 
   --(4) expression
-  code = code .. " = " .. trans:_trans(sent.exp) .. ";"
+  code = code .. string.format(
+    " = dogma.getArrayToUnpack(%s, %s);",
+    trans:_trans(sent.exp),
+    #sent.vars
+  )
 
   --(5) return
   return code
@@ -93,7 +99,12 @@ function UnpackTrans:_transReadOnlyFieldsList(sent)
 
   --(1) list value
   valVar = self:_getRandomName()
-  code = string.format("const %s = %s;", valVar, trans:_trans(sent.exp))
+  code = string.format(
+    "const %s = dogma.getArrayToUnpack(%s, %s);",
+    valVar,
+    trans:_trans(sent.exp),
+    #sent.vars
+  )
 
   --(2) unpack
   for ix, fld in ipairs(sent.vars) do
@@ -132,7 +143,12 @@ function UnpackTrans:_transOptionalList(sent)
 
   --(1) list value
   valVar = self:_getRandomName()
-  code = string.format("const %s = %s;", valVar, trans:_trans(sent.exp))
+  code = string.format(
+    "const %s = dogma.getArrayToUnpack(%s, %s);",
+    valVar,
+    trans:_trans(sent.exp),
+    #sent.vars
+  )
 
   --(2) unpack
   local left, right = "", ""
@@ -156,6 +172,64 @@ function UnpackTrans:_transOptionalList(sent)
   end
 
   code = code .. string.format("[%s] = [%s];", left, right)
+
+  --(3) return
+  return code
+end
+
+--Transform [...] .= Exp.
+--
+--@param sent:Unpack
+--@return string
+function UnpackTrans:_transPropList(sent)
+  local trans = self._.trans
+  local code, valVar
+
+  --(1) list value
+  valVar = self:_getRandomName()
+  code = string.format(
+    "const %s = dogma.getArrayToUnpack(%s, %s);",
+    valVar,
+    trans:_trans(sent.exp),
+    #sent.vars
+  )
+
+  --(2) unpack
+  for ix, def in ipairs(sent.vars) do
+    if def.name:find("[:.]") then
+      local obj = def.name:match("(.+)[:.][^:.]+$")
+      local fld = def.name:match(".+[:.]([^:.]+)$")
+
+      code = code .. string.format(
+        'Object.defineProperty(%s, "_%s", {value: %s[%s], writable: true});',
+        obj,
+        fld,
+        valVar,
+        ix - 1
+      )
+
+      code = code .. string.format(
+        'Object.defineProperty(%s, "%s", {enum: true, get() { return %s._%s; }});',
+        obj,
+        fld,
+        obj,
+        fld
+      )
+    else
+      code = code .. string.format(
+        'Object.defineProperty(this, "_%s", {value: %s[%s], writable: true});',
+        def.name,
+        valVar,
+        ix - 1
+      )
+
+      code = code .. string.format(
+        'Object.defineProperty(this, "%s", {enum: true, get() { return this._%s; }});',
+        def.name,
+        def.name
+      )
+    end
+  end
 
   --(3) return
   return code

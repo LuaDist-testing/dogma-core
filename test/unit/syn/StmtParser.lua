@@ -2492,7 +2492,13 @@ return suite("dogma.syn.StmtParser", function()
   suite("nextPub()", function()
     test("pub", function()
       parser:parse("pub")
-      assert(function() parser:next() end):raises("on (1,4), literal text or name expected.")
+      stmt = parser:next()
+      assert(stmt):isTable():has({
+        line = 1,
+        col = 1,
+        subtype = StmtType.PUB,
+        items = {}
+      })
     end)
 
     test("pub Name", function()
@@ -2528,9 +2534,25 @@ return suite("dogma.syn.StmtParser", function()
       })
     end)
 
+    test("pub\\n Name\\n Text", function()
+      parser:parse('pub\n Item1\n "Item2"')
+      stmt = parser:next()
+      assert(stmt):isTable():has({
+        line = 1,
+        col = 1,
+        subtype = StmtType.PUB,
+        items = {{type = "pub", value = "Item1"}, {type = "use", value = {path = "Item2", name = "Item2"}}}
+      })
+    end)
+
     test("pub Name Name - error", function()
       parser:parse("pub Item1 Item2")
       assert(function() parser:next() end):raises("on (1,11), comma expected.")
+    end)
+
+    test("pub 123 - error", function()
+      parser:parse("pub 123")
+      assert(function() parser:next() end):raises("on (1,5), literal text or name expected.")
     end)
   end):tags("pub")
 

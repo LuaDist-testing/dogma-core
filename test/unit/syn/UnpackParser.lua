@@ -211,6 +211,27 @@ return suite("dogma.syn.UnpackParser", function()
       assert(sent.exp:__tostring()):eq("(call func)")
     end)
 
+    test("[.Name, :Name, Name, ...Name] .= Exp", function()
+      parser:parse("[.a, :b, c, ...d] .= func()")
+      sent = parser:next()
+      assert(sent):isTable():has({
+        line = 1,
+        col = 1,
+        type = SentType.UNPACK,
+        visib = nil,
+        def = nil,
+        subtype = "[]",
+        assign = ".=",
+        vars = {
+          {mod = ".", name = "a", value = nil},
+          {mod = ":", name = "b", value = nil},
+          {mod = nil, name = "c", value = nil},
+          {mod = "...", name = "d", value = nil}
+        }
+      })
+      assert(sent.exp:__tostring()):eq("(call func)")
+    end)
+
     test("[Name = Exp, Name, Name = Exp] = Exp", function()
       parser:parse("[a = 1, b, c = 3] = func()")
 
@@ -234,7 +255,7 @@ return suite("dogma.syn.UnpackParser", function()
 
     test("[Name, Name] ; Exp - error", function()
       parser:parse("[x, ...y] ; 1+2")
-      assert(function() parser:next() end):raises("on (1,11), '=', ':=' or '%?=' expected.")
+      assert(function() parser:next() end):raises("on (1,11), '=', '%.=', ':=' or '%?=' expected.")
     end)
 
     test("[Name{Name}] = Exp", function()
@@ -253,8 +274,8 @@ return suite("dogma.syn.UnpackParser", function()
       assert(sent.exp:__tostring()):eq("arr")
     end)
 
-    test("[Name{Name,Name}] = Exp", function()
-      parser:parse("[opts{host,port}] = arr")
+    test("[Name{Name,:Name}] = Exp", function()
+      parser:parse("[opts{host,:port}] = arr")
       sent = parser:next()
       assert(sent):isTable():has({
         line = 1,
@@ -266,7 +287,7 @@ return suite("dogma.syn.UnpackParser", function()
       })
       assert(sent.vars):len(2)
       assert(sent.vars[1]):has({mod = nil, name = "opts.host", value = nil})
-      assert(sent.vars[2]):has({mod = nil, name = "opts.port", value = nil})
+      assert(sent.vars[2]):has({mod = nil, name = "opts:port", value = nil})
       assert(sent.exp:__tostring()):eq("arr")
     end)
 

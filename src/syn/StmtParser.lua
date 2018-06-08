@@ -1215,42 +1215,64 @@ end
 --@return PubStmt
 function StmtParser:nextPub()
   local lex = self._.lexer
-  local tok, ln, col, items
+  local tok, ln, col, items, sep
 
   --(1) read pub keyword
   tok = lex:next(TokenType.KEYWORD, "pub")
   ln, col = tok.line, tok.col
 
-  --(2) read items
+  --(2) set seperator
+  tok = lex:advance()
+
+  if tok.type == TokenType.EOL then
+    lex:next()
+    sep = "\n"
+  else
+    sep = ","
+  end
+
+  --(3) read items
   items = {}
 
   while true do
+    local item
+
     --item
     tok = lex:advance()
 
+    if sep == "\n" and (not tok or tok.col <= col) then
+      break
+    end
+
     if tok and tok.type == TokenType.LITERAL and type(tok.value) == "string" then
       lex:next()
-      table.insert(items, {type = "use", value = tok.value})
+      item = {type = "use", value = tok.value}
     elseif tok and tok.type == TokenType.NAME then
       lex:next()
-      table.insert(items, {type = "pub", value = tok.value})
+      item = {type = "pub", value = tok.value}
     else
       error(string.format("on (%s,%s), literal text or name expected.", tok.line, tok.col))
     end
 
-    --end or next?
-    tok = lex:next()
+    table.insert(items, item)
 
-    if tok.type == TokenType.EOL then
-      break
+    --end or next?
+    if sep == "\n" then
+      lex:next(TokenType.EOL)
     else
-      if tok.type ~= TokenType.SYMBOL or tok.value ~= "," then
-        error(string.format("on (%s,%s), comma expected.", tok.line, tok.col))
+      tok = lex:next()
+
+      if tok.type == TokenType.EOL then
+        break
+      else
+        if tok.type ~= TokenType.SYMBOL or tok.value ~= "," then
+          error(string.format("on (%s,%s), comma expected.", tok.line, tok.col))
+        end
       end
     end
   end
 
-  --(3) return
+  --(4) return
   return PubStmt.new(ln, col, items)
 end
 

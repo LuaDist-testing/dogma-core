@@ -251,6 +251,30 @@ return suite("dogma.syn.ExpParser", function()
         assert(parser:next()):isNil()
       end)
 
+      test("x + {name}", function()
+        parser:parse("x + {variable}")
+        exp = parser:next()
+        assert(exp):isTable():has({
+          line = 1,
+          col = 1,
+          type = SentType.EXP
+        })
+        assert(exp.tree.root):isNotNil()
+        assert(tostring(exp)):eq("(+ x {variable = variable})")
+      end)
+
+      test("x + {{name} = obj}", function()
+        parser:parse("x + {{fld} = obj}")
+        exp = parser:next()
+        assert(exp):isTable():has({
+          line = 1,
+          col = 1,
+          type = SentType.EXP
+        })
+        assert(exp.tree.root):isNotNil()
+        assert(tostring(exp)):eq("(+ x {fld = (. obj fld)})")
+      end)
+
       test("x + {one = 1}", function()
         parser:parse("x + {one = 1}")
         exp = parser:next()
