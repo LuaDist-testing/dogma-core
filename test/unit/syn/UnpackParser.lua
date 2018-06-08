@@ -221,7 +221,7 @@ return suite("dogma.syn.UnpackParser", function()
         type = SentType.UNPACK,
         visib = nil,
         def = nil,
-        subtype = "[]",
+        subtype = "[]"
       })
       assert(sent.vars):len(3)
       assert(sent.vars[1]):has({mod = nil, name = "a"})
@@ -235,6 +235,57 @@ return suite("dogma.syn.UnpackParser", function()
     test("[Name, Name] ; Exp - error", function()
       parser:parse("[x, ...y] ; 1+2")
       assert(function() parser:next() end):raises("on (1,11), '=', ':=' or '%?=' expected.")
+    end)
+
+    test("[Name{Name}] = Exp", function()
+      parser:parse("[opts{host}] = arr")
+      sent = parser:next()
+      assert(sent):isTable():has({
+        line = 1,
+        col = 1,
+        type = SentType.UNPACK,
+        visib = nil,
+        def = nil,
+        subtype = "[]"
+      })
+      assert(sent.vars):len(1)
+      assert(sent.vars[1]):has({mod = nil, name = "opts.host", value = nil})
+      assert(sent.exp:__tostring()):eq("arr")
+    end)
+
+    test("[Name{Name,Name}] = Exp", function()
+      parser:parse("[opts{host,port}] = arr")
+      sent = parser:next()
+      assert(sent):isTable():has({
+        line = 1,
+        col = 1,
+        type = SentType.UNPACK,
+        visib = nil,
+        def = nil,
+        subtype = "[]"
+      })
+      assert(sent.vars):len(2)
+      assert(sent.vars[1]):has({mod = nil, name = "opts.host", value = nil})
+      assert(sent.vars[2]):has({mod = nil, name = "opts.port", value = nil})
+      assert(sent.exp:__tostring()):eq("arr")
+    end)
+
+    test("[Name{Name,Name}, Name] = Exp", function()
+      parser:parse("[opts{host,port}, db] = arr")
+      sent = parser:next()
+      assert(sent):isTable():has({
+        line = 1,
+        col = 1,
+        type = SentType.UNPACK,
+        visib = nil,
+        def = nil,
+        subtype = "[]"
+      })
+      assert(sent.vars):len(3)
+      assert(sent.vars[1]):has({mod = nil, name = "opts.host", value = nil})
+      assert(sent.vars[2]):has({mod = nil, name = "opts.port", value = nil})
+      assert(sent.vars[3]):has({mod = nil, name = "db", value = nil})
+      assert(sent.exp:__tostring()):eq("arr")
     end)
   end)
 
@@ -350,7 +401,12 @@ return suite("dogma.syn.UnpackParser", function()
 
     test("{Name, Name, ...Name} ; Exp - error", function()
       parser:parse("{x, y, ...z} = obj")
-      assert(function() parser:next() end):raises("on (1,8), '...' not allowed with list unpack.")
+      assert(function() parser:next() end):raises("on (1,8), '...' only allowed with list unpack.")
+    end)
+
+    test("{Name{...}} = Exp - error", function()
+      parser:parse("{opts{host,port}} = obj")
+      assert(function() parser:next() end):raises("on (1,6), 'object{}' only allowed with list unpack.")
     end)
   end)
 end):tags("unpack")

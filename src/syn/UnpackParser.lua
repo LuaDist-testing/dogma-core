@@ -2,6 +2,7 @@
 local TokenType = require("dogma.lex.TokenType")
 local SubParser = require("dogma.syn._.SubParser")
 local Unpack = require("dogma.syn._.Unpack")
+local DataAccess = require("dogma.syn._.DataAccess")
 
 --An unpack sentence parser.
 local UnpackParser = {}
@@ -53,8 +54,67 @@ function UnpackParser:next()
   vars = {}
 
   while true do
-    --read
-    table.insert(vars, self:_nextDataAccess({default = true, rest = (typ == "[]")}))
+    local mod, name, val
+
+    --visib
+    tok = lex:advance()
+
+    if tok.type == TokenType.SYMBOL and (tok.value == "." or tok.value == ":") then
+      lex:next()
+      mod = tok.value
+    elseif tok.type == TokenType.SYMBOL and tok.value == "..." then
+      if typ == "{}" then
+        error(string.format("on (%s,%s), '...' only allowed with list unpack.", tok.line, tok.col))
+      else
+        lex:next()
+        mod = tok.value
+      end
+    end
+
+    --name, name=val, name{...}
+    name = lex:next(TokenType.NAME).value
+
+    tok = lex:advance()
+    if tok.type == TokenType.SYMBOL and tok.value == "{" then
+      if typ == "{}" then
+        error(string.format("on (%s,%s), 'object{}' only allowed with list unpack.", tok.line, tok.col))
+      else
+        lex:next(TokenType.SYMBOL, "{")
+
+        while true do
+          table.insert(vars, DataAccess.new(mod, name .. "." .. lex:next(TokenType.NAME).value))
+
+          tok = lex:advance()
+          if not (tok.type == TokenType.SYMBOL and tok.value == ",") then
+            break
+          end
+
+          lex:next(TokenType.SYMBOL, ",")
+        end
+
+        lex:next(TokenType.SYMBOL, "}")
+      end
+    else
+      while true do
+        tok = lex:advance()
+
+        if tok.type == TokenType.SYMBOL and (tok.value == "." or tok.value == ":") then
+          lex:next()
+          name = name .. tok.value .. lex:next(TokenType.NAME).value
+        else
+          break
+        end
+      end
+
+      tok = lex:advance()
+
+      if tok.type == TokenType.SYMBOL and tok.value == "=" then
+        lex:next()
+        val = parser:nextExp()
+      end
+
+      table.insert(vars, DataAccess.new(mod, name, val))
+    end
 
     --comma or end
     tok = lex:advance()

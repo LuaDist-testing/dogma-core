@@ -179,8 +179,6 @@ end
 function ExpTrans:_transNonTerminal(node)
   if node.subtype == NonTerminalType.OP then
     return self:_transOp(node)
-  -- elseif node.subtype == NonTerminalType.TREE then
-  --   return self:_transTree(node)
   end
 end
 
@@ -386,16 +384,46 @@ end
 
 function ExpTrans:_transNaryOp(node)
   if node.op == "()" then
-    local code
+    return self:_transCallOp(node)
+  elseif node.op == "{}" then
+    return self:_transPackOp(node)
+  end
+end
 
-    code = self:_transNode(node.children[1]) .. "("
-    for i, arg in ipairs(node.children) do
-      if i > 1 then
-        code = code .. (i == 2 and "" or ", ") .. self:_transNode(arg.tree.root)
+function ExpTrans:_transCallOp(node)
+  local code
+
+  code = self:_transNode(node.children[1]) .. "("
+  for i, arg in ipairs(node.children) do
+    if i > 1 then
+      code = code .. (i == 2 and "" or ", ") .. self:_transNode(arg.tree.root)
+    end
+  end
+  code = code .. ")"
+
+  return code
+end
+
+function ExpTrans:_transPackOp(node)
+  local code
+
+  --(1) transform
+  if #node.children == 2 and node.children[2].name == "*" then
+    code = string.format("dogma.clone(%s)", self:_transNode(node.children[1]))
+  else
+    code = "dogma.pack("
+
+    for i, item in ipairs(node.children) do
+      if i == 1 then
+        code = code .. self:_transNode(item)
+      else
+        code = code .. string.format(', "%s%s"', item.visib == "." and "" or "_", item.name)
       end
     end
-    code = code .. ")"
 
-    return code
+    code = code .. ")"
   end
+
+  --(2) return
+  return code
 end

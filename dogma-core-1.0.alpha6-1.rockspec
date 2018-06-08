@@ -1,10 +1,10 @@
 -- This file was automatically generated for the LuaDist project.
 
 package = "dogma-core"
-version = "1.0.alpha5-1"
+version = "1.0.alpha6-1"
 -- LuaDist source
 source = {
-  tag = "1.0.alpha5-1",
+  tag = "1.0.alpha6-1",
   url = "git://github.com/LuaDist-testing/dogma-core.git"
 }
 -- Original source
@@ -80,12 +80,14 @@ build = {
     ["dogma.syn._.LiteralFn"] = "src/syn/LiteralFn.lua",
     ["dogma.syn._.LiteralList"] = "src/syn/LiteralList.lua",
     ["dogma.syn._.LiteralMap"] = "src/syn/LiteralMap.lua",
+    ["dogma.syn._.NaryOp"] = "src/syn/NaryOp.lua",
     ["dogma.syn._.NativeFn"] = "src/syn/NativeFn.lua",
     ["dogma.syn._.NextStmt"] = "src/syn/NextStmt.lua",
     ["dogma.syn._.Node"] = "src/syn/Node.lua",
     ["dogma.syn._.NonTerminal"] = "src/syn/NonTerminal.lua",
     ["dogma.syn._.ObjectStmt"] = "src/syn/ObjectStmt.lua",
     ["dogma.syn._.Op"] = "src/syn/Op.lua",
+    ["dogma.syn._.PackOp"] = "src/syn/PackOp.lua",
     ["dogma.syn._.Param"] = "src/syn/Param.lua",
     ["dogma.syn._.Params"] = "src/syn/Params.lua",
     ["dogma.syn._.PevalFn"] = "src/syn/PevalFn.lua",

@@ -1,6 +1,5 @@
 --imports
 local TokenType = require("dogma.lex.TokenType")
-local DataAccess = require("dogma.syn._.DataAccess")
 
 --A subparser.
 local SubParser = {}
@@ -21,53 +20,6 @@ function SubParser.new(parser)
       lexer = parser._.lexer
     }
   }, SubParser)
-end
-
---Read the next data access.
---
---@return DataAccess
-function SubParser:_nextDataAccess(opts)
-  local lex, parser = self._.lexer, self._.parser
-  local tok, mod, name, val
-
-  --(1) read modifier
-  tok = lex:advance()
-
-  if tok.type == TokenType.SYMBOL and (tok.value == "..." or tok.value == "." or tok.value == ":") then
-    if tok.value == "..." and not opts.rest then
-      error(string.format("on (%s,%s), '...' not allowed with list unpack.", tok.line, tok.col))
-    end
-
-    lex:next()
-    mod = tok.value
-  end
-
-  --(2) read name
-  name = lex:next(TokenType.NAME).value
-
-  while true do
-    tok = lex:advance()
-
-    if tok.type == TokenType.SYMBOL and (tok.value == "." or tok.value == ":") then
-      lex:next()
-      name = name .. tok.value .. lex:next(TokenType.NAME).value
-    else
-      break
-    end
-  end
-
-  --(3) read value
-  if opts.default then
-    tok = lex:advance()
-
-    if tok.type == TokenType.SYMBOL and tok.value == "=" then
-      lex:next()
-      val = parser:nextExp()
-    end
-  end
-
-  --(4) return
-  return DataAccess.new(mod, name, val)
 end
 
 --Read next end of lines.

@@ -1,10 +1,10 @@
 --imports
-local Op = require("dogma.syn._.Op")
+local NaryOp = require("dogma.syn._.NaryOp")
 
---A ternary operator.
+--A call operator.
 local CallOp = {}
 CallOp.__index = CallOp
-setmetatable(CallOp, {__index = Op})
+setmetatable(CallOp, {__index = NaryOp})
 package.loaded[...] = CallOp
 
 --Constructor.
@@ -14,35 +14,12 @@ function CallOp.new(tok)
   local self
 
   --(1) create
-  self = setmetatable(Op.new("n", tok), CallOp)
+  self = setmetatable(NaryOp.new(tok), CallOp)
   self.children = {}
   self.finished = false
 
   --(2) return
   return self
-end
-
---@override
-function CallOp:insert(node)
-  if self.finished then
-    error(string.format(
-      "(%s,%s): node can't be inserted to full call.",
-      node.tok.line,
-      node.tok.col
-    ))
-  end
-
-  table.insert(self.children, node)
-end
-
---@override
-function CallOp.remove()
-  error("call operator can't remove children.")
-end
-
---@override
-function CallOp:isWellFormed()
-  return self.finished
 end
 
 --@override

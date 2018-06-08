@@ -447,6 +447,31 @@ return suite("dogma.trans.js._.ExpTrans", function()
   end)
 
   ----------
+  -- pack --
+  ----------
+  suite("pack", function()
+    test("pack{*}", function()
+      parser:parse("x{*}")
+      assert(trans:next()):eq("dogma.clone(x);\n")
+    end)
+
+    test("pack{}", function()
+      parser:parse("x{}")
+      assert(trans:next()):eq("dogma.pack(x);\n")
+    end)
+
+    test("pack{name}", function()
+      parser:parse("x{name}")
+      assert(trans:next()):eq('dogma.pack(x, "name");\n')
+    end)
+
+    test("pack{name, .name, :name}", function()
+      parser:parse("x{a,.b,:c}")
+      assert(trans:next()):eq('dogma.pack(x, "a", "b", "_c");\n')
+    end)
+  end):tags("pack")
+
+  ----------
   -- misc --
   ----------
   suite("misc", function()

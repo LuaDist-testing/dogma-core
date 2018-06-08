@@ -19,6 +19,7 @@ local PevalFn = require("dogma.syn._.PevalFn")
 local NativeFn = require("dogma.syn._.NativeFn")
 local ThrowFn = require("dogma.syn._.ThrowFn")
 local ReturnStmt = require("dogma.syn._.ReturnStmt")
+local PackOp = require("dogma.syn._.PackOp")
 
 --An expression parser.
 local ExpParser = {}
@@ -94,7 +95,11 @@ function ExpParser:_readExp()
       end
     elseif tok.type == TokenType.SYMBOL and tok.value == "{" then
       lex:unshift()
-      exp:insert(self:_readLiteralMap())
+      if exp.tree:isWellFormed() then
+        self:_readPackOp(exp)
+      else
+        exp:insert(self:_readLiteralMap())
+      end
     elseif tok.type == TokenType.KEYWORD and tok.value == "fn" then
       lex:unshift()
       exp:insert(self:_readFn())
@@ -504,7 +509,7 @@ function ExpParser:_readLiteralMap()
         end
       else
         self:_nextEols()
-        
+
         tok = lex:advance()
         if tok.type == TokenType.SYMBOL and tok.value == "}" then
           break
@@ -584,4 +589,71 @@ function ExpParser:_readIndexOp(exp)
     op:insert(init.tree.root)
     op:insert(fin.tree.root)
   end
+end
+
+--Read the next {name,name...} op.
+--
+--@param exp:Exp  Expression to update.
+function ExpParser:_readPackOp(exp)
+  local lex = self._.lexer
+  local tok, op
+
+  --(1) read {
+  tok = lex:next(TokenType.SYMBOL, "{")
+
+  --(2) create op
+  tok.value = "{}"
+  op = PackOp.new(tok)
+  exp:insert(op)
+
+  --(3) read fields
+  tok = lex:advance()
+  if not (tok.type == TokenType.SYMBOL and tok.value == "}") then
+    while true do
+      local visib, name
+
+      --name, .name or :name
+      tok = lex:advance()
+
+      if tok.type == TokenType.SYMBOL and tok.value == "*" then
+        if #op.children > 1 then
+          error(string.format("on (%s,%s), '*' only allowed when '{*}'.", tok.line, tok.col))
+        end
+
+        lex:next()
+        visib = "."
+        name = "*"
+      elseif tok.type == TokenType.SYMBOL and (tok.value == "." or tok.value == ":") then
+        lex:next()
+        visib = tok.value
+        name = ""
+      else
+        visib = "."
+        name = ""
+      end
+
+      if name ~= "*" then
+        name = lex:next(TokenType.NAME).value
+      end
+
+      table.insert(op.children, {visib = visib, name = name})
+
+      --end?
+      if name == "*" then
+        break
+      else
+        tok = lex:advance()
+
+        if tok.type == TokenType.SYMBOL and tok.value == "}" then
+          break
+        end
+
+        lex:next(TokenType.SYMBOL, ",")
+      end
+    end
+  end
+
+  --(4) read }
+  lex:next(TokenType.SYMBOL, "}")
+  op.finished = true
 end

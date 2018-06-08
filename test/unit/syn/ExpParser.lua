@@ -816,4 +816,49 @@ return suite("dogma.syn.ExpParser", function()
       assert(tostring(parser:next())):eq("(throw (+ 1 2) (+ 3 4) (+ 5 6))")
     end)
   end):tags("throw")
+
+  ----------
+  -- pack --
+  ----------
+  suite("pack", function()
+    test("exp{}", function()
+      parser:parse("obj{}")
+      assert(tostring(parser:next())):eq("(pack obj)")
+    end)
+
+    test("exp{*}", function()
+      parser:parse("obj{*}")
+      assert(tostring(parser:next())):eq("(pack obj .*)")
+    end)
+
+    test("exp{*,name}", function()
+      parser:parse("obj{*,field}")
+      assert(function() parser:next() end):raises("'}' expected on (1, 6).")
+    end)
+
+    test("exp{name,*}", function()
+      parser:parse("obj{field,*}")
+      assert(function() parser:next() end):raises("on (1,11), '%*' only allowed when '{%*}'.")
+    end)
+
+    test("exp{name}", function()
+      parser:parse("obj{name}")
+      assert(tostring(parser:next())):eq("(pack obj .name)")
+    end)
+
+    test("exp{.name}", function()
+      parser:parse("obj{.name}")
+      assert(tostring(parser:next())):eq("(pack obj .name)")
+    end)
+
+    test("exp{:name}", function()
+      parser:parse("obj{:name}")
+      assert(tostring(parser:next())):eq("(pack obj :name)")
+    end)
+
+    test("exp{name,.name,:name}", function()
+      parser:parse("obj{one,.two,:three}")
+      assert(tostring(parser:next())):eq("(pack obj .one .two :three)")
+    end)
+  end):tags("pack")
 end):tags("exp")
